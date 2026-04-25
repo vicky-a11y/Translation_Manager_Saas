@@ -1,0 +1,39 @@
+# --- 基礎依賴 ---
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# --- Next.js 編譯與測試 ---
+/.next/
+/out/
+/build
+/coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# --- 環境變數 (最重要！) ---
+# 忽略所有環境變數實體檔案
+.env*
+# 但「不要」忽略 .env.example 範本檔
+!.env.example
+
+# --- 作業系統與開發工具 ---
+.DS_Store
+*.pem
+.vercel
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.cursor/
+.history/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+supabase/.temp/
+

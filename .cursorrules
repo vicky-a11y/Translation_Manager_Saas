@@ -1,0 +1,41 @@
+# PINCHIEH 翻譯社管理系統 - 開發規範
+
+## 開發連續性（AI Agent）
+
+- 執行任何開發、重構或除錯任務**之前**，請優先閱讀專案根目錄的 **`MEMORIES.md`**（已完成脈絡）與 **`ROADMAP.md`**（待辦擴充），對齊現況與規劃後再動手，以維持上下文一致並避免重複或衝突的實作。
+
+## 核心架構（軍規）
+
+### UUID v4 主鍵（零衝突）
+- **所有資料表主鍵 (PK) 必須為 UUID**，使用 `gen_random_uuid()`（等同 UUID v4）；**嚴禁**使用序號整數（serial / identity / auto-increment）作為業務或合併可能涉及的資料表主鍵，以利未來資料庫合併或分拆時零 ID 衝突。
+- 外鍵、租戶識別、關聯表一律使用 UUID。
+
+### 邏輯租戶隔離
+- **所有業務相關資料表**必須包含 `tenant_id (UUID)`（指向 `tenants`）。
+- 使用者與租戶可為 **多對多**：以 **`tenant_memberships`** 為隸屬與**租戶內職務**（owner / manager / admin / staff / translator）；**`profiles.role`**（ENUM：`super_admin` / `tenant_owner` / `staff` / `translator`）與 **`profiles.permissions`（JSONB 布林開關）** 為**平台級**權限與 UI／RLS 輔助判斷；`profiles.active_tenant_id` 為目前工作區。
+- **財務欄位**：金額在 **`project_financials`**；RLS 需 **`auth_profile_permission('can_view_finance')`** 和／或 membership 之 owner／manager 條件（見遷移 `008`）。
+- **既有表優先原則**：新增財務需求時，優先擴充現有表（例如 `project_financials`）與既有欄位命名；除非經明確批准，不得任意建立平行主表取代既有表，避免破壞既有關聯與 RLS 策略。
+- **資料安全**: Supabase RLS；存取範圍須與「有效成員資格 + 目前工作區」一致，不得假設單一 `profiles.tenant_id` 即為唯一關聯。
+
+### 全域查詢隔離（Global Query Scoping）
+- 透過業務程式存取租戶資料時，必須經 **`src/lib/supabase/tenant-scoped-client`（或後續同等封裝）**，對列於 `TENANT_SCOPED_TABLES` 的資料表 **預設附加 `tenant_id` 篩選**；手寫查詢若繞過封裝，仍須在 Repository／Service 內顯式帶入工作區 `tenant_id` 並與 RLS 一致。
+
+### Repository／Service 層
+- 資料存取以 **Repository 或 Service Layer** 為邊界，**不得**在 UI 元件內散落裸 `supabase.from(...)` 與租戶無關的查詢（新程式碼逐步收斂；擴充時優先新增 `src/lib/repositories/` 下的模組）。
+- 預留未來依設定將**特定租戶**導向**獨立資料庫連線**：Repository 僅依賴注入的 client／連線工廠，不直接綁死全域單例。
+
+### 語系架構
+- 使用 `next-intl`，路徑為 `/[locale]/`。支援 zh-TW, zh-CN, en, ms。
+
+## 技術棧
+- Next.js (App Router), TypeScript, Supabase (Auth/SSR), Tailwind CSS, Shadcn UI.
+
+## 業務邏輯
+1. 註冊流程：Email OTP -> 填寫個人資訊 -> 網域驗證/租戶建立。
+2. 權限分級（每租戶，僅 `tenant_memberships.role`）：**Owner**（含財務敏感設定、刪除、成員管理）、**Manager**（可讀寫 `project_financials` 金額）、**Admin**（案件與譯者；預設不含金額讀取）、**Staff**（一般案件流程）、**Translator**（被指派的案件與個人結算）。
+3. 離職／解除存取：以 **`tenant_memberships.is_active = false`**（或刪除該筆成員資格）斷開該租戶之業務資料連結；使用者可隸屬多家公司時不應清空整個帳號。
+4. **租戶切換器**：具多家存取權之使用者須能切換 `active_tenant_id`（工作區視角）。
+
+## UI/UX 規範
+- 風格：專業、簡潔、高對比度商務感。
+- 響應式：必須支援馬來文(較長)的文字溢出處理。
