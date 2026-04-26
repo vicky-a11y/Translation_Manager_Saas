@@ -32,7 +32,7 @@
 
 - 受邀者需開啟的網址格式：**`/{locale}/invite/<邀請 token>`**（例如 `/zh-TW/invite/xxxxxxxx-xxxx-...`）。
 - Token 需自 **邀請紀錄 UI** 或 **`public.invitations`** 查詢。
-- 目前 **建立邀請後不會自動寄信**；若要產品化，需另行串接寄信（例如 Resend）並在 `createMemberInvitation` 成功後寄出含連結的信件。
+- 建立邀請後會嘗試透過 Resend 寄出含邀請連結的信件；若 Resend 尚未設定或寄送失敗，成員頁會顯示狀態提示，並在邀請紀錄中保留可手動提供給受邀者的連結。
 
 ### 2.1 跨租戶身分：租戶端不得探知（產品／法遵原則）
 
@@ -58,7 +58,7 @@
 
 ## 5. 環境變數與第三方
 
-- **網域驗證信**：仍依賴 **`RESEND_API_KEY`**、**`RESEND_FROM_EMAIL`**（見 `onboarding/actions.ts`）；未設定時開發模式會顯示 **dev 驗證連結**。
+- **網域驗證信／成員邀請信**：仍依賴 **`RESEND_API_KEY`**、**`RESEND_FROM_EMAIL`**（見 `onboarding/actions.ts`、`actions/members.ts`）；未設定時網域驗證開發模式會顯示 **dev 驗證連結**，成員邀請則會顯示可手動分享的邀請連結。
 - **Supabase**：Email OTP 範本若仍含「點連結登入」，與前端「僅輸入 6 碼」文案可能不一致，建議在 Supabase 後台改為 **OTP 為主**（見 `messages` 內 `Auth.otpOnlyHint` 說明）。
 
 ---

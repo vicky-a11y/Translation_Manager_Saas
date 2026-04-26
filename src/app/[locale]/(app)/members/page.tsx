@@ -1,7 +1,7 @@
 import {redirect} from "next/navigation";
 import {getTranslations} from "next-intl/server";
 
-import {createMemberInvitation} from "@/app/[locale]/actions/members";
+import {createMemberInvitation, resendMemberInvitation} from "@/app/[locale]/actions/members";
 import {MembersDataTable, type MemberTableRow} from "@/components/members/members-data-table";
 import {DashboardShell} from "@/components/layout/dashboard-shell";
 import {createClient} from "@/lib/supabase/server";
@@ -16,10 +16,28 @@ function isLocale(value: string): value is AppLocale {
 }
 
 const ADMIN_ROLES = new Set(["owner", "admin"]);
+const INVITE_STATUS_KEYS = new Set([
+  "sent",
+  "resent",
+  "email_not_configured",
+  "email_failed",
+  "create_failed",
+  "forbidden",
+  "validation",
+  "no_workspace",
+]);
 
-export default async function MembersPage({params}: {params: Promise<{locale: string}>}) {
+export default async function MembersPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{locale: string}>;
+  searchParams: Promise<{invite?: string}>;
+}) {
   const {locale: localeParam} = await params;
+  const {invite: inviteStatus} = await searchParams;
   const locale: AppLocale = isLocale(localeParam) ? localeParam : defaultLocale;
+  const inviteStatusKey = inviteStatus && INVITE_STATUS_KEYS.has(inviteStatus) ? inviteStatus : null;
 
   const supabase = await createClient();
   const {
@@ -96,7 +114,7 @@ export default async function MembersPage({params}: {params: Promise<{locale: st
 
   const {data: invites} = await supabase
     .from("invitations")
-    .select("id, email, status, invited_role, created_at, expires_at")
+    .select("id, email, token, status, invited_role, created_at, expires_at")
     .eq("tenant_id", workspaceTenantId)
     .order("created_at", {ascending: false});
 
@@ -127,6 +145,18 @@ export default async function MembersPage({params}: {params: Promise<{locale: st
           <h2 className="text-2xl font-semibold text-zinc-900">{membersT("title")}</h2>
           <p className="mt-1 text-sm text-zinc-500">{membersT("subtitle")}</p>
         </div>
+
+        {inviteStatusKey ? (
+          <p
+            className={
+              inviteStatusKey === "sent"
+                ? "rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+                : "rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            }
+          >
+            {membersT(`inviteStatus.${inviteStatusKey}`)}
+          </p>
+        ) : null}
 
         {ADMIN_ROLES.has(myMembership.role) ? (
           <section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -168,7 +198,7 @@ export default async function MembersPage({params}: {params: Promise<{locale: st
                 {membersT("inviteCta")}
               </button>
             </form>
-            <p className="mt-3 text-xs text-zinc-500">{membersT("inviteUrlHint", {locale})}</p>
+            <p className="mt-3 text-xs text-zinc-500">{membersT("inviteUrlHint")}</p>
           </section>
         ) : null}
 
@@ -192,11 +222,36 @@ export default async function MembersPage({params}: {params: Promise<{locale: st
               <li className="py-3 text-sm text-zinc-500">{membersT("noInvites")}</li>
             ) : (
               (invites ?? []).map((inv) => (
-                <li key={inv.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-                  <span className="font-medium text-zinc-900">{inv.email}</span>
-                  <span className="text-xs text-zinc-500">
-                    {inv.status} · {inv.invited_role}
-                  </span>
+                <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                  <div className="min-w-0">
+                    <span className="font-medium text-zinc-900">{inv.email}</span>
+                    <p className="mt-1 break-all text-xs text-zinc-500">
+                      {membersT("inviteLinkLabel")}{" "}
+                      <a
+                        href={`/${locale}/invite/${inv.token}`}
+                        className="text-blue-600 underline underline-offset-2 hover:text-blue-700"
+                      >
+                        {`/${locale}/invite/${inv.token}`}
+                      </a>
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-xs text-zinc-500">
+                      {inv.status} · {inv.invited_role}
+                    </span>
+                    {inv.status === "pending" ? (
+                      <form action={resendMemberInvitation}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="invitation_id" value={inv.id} />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                        >
+                          {membersT("resendInvite")}
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
                 </li>
               ))
             )}
