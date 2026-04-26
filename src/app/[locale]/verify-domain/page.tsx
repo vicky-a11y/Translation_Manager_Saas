@@ -63,5 +63,11 @@ export default async function VerifyDomainPage({
     );
   }
 
+  await supabase
+    .from("domain_verifications")
+    .update({status: "cancelled"})
+    .eq("user_id", user.id)
+    .eq("status", "pending");
+
   redirect(`/${locale}/dashboard`);
 }

@@ -21,11 +21,23 @@ export const TENANT_SCOPED_TABLES = new Set<string>([
  */
 export function createTenantScopedSupabase(client: SupabaseClient, tenantId: string): SupabaseClient {
   const from = (table: string) => {
-    const q = client.from(table) as unknown as {eq: (column: string, value: string) => unknown};
-    if (TENANT_SCOPED_TABLES.has(table)) {
-      return q.eq("tenant_id", tenantId);
+    const builder = client.from(table);
+    if (!TENANT_SCOPED_TABLES.has(table)) {
+      return builder;
     }
-    return client.from(table);
+
+    return new Proxy(builder as object, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if ((prop === "select" || prop === "update" || prop === "delete") && typeof value === "function") {
+          return (...args: unknown[]) => {
+            const query = value.apply(target, args) as {eq: (column: string, value: string) => unknown};
+            return query.eq("tenant_id", tenantId);
+          };
+        }
+        return value;
+      },
+    });
   };
 
   return new Proxy(client, {

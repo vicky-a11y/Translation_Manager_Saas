@@ -38,6 +38,7 @@ export function OnboardingForm({locale, successRedirectHref}: {locale: string; s
               if (result.code === "consumer_email") setMessage(t("errorConsumerEmail"));
               else if (result.code === "missing_fields") setMessage(t("errorMissing"));
               else if (result.code === "not_authenticated") setMessage(t("errorAuth"));
+              else if (result.code === "email_failed") setMessage(t("errorEmailFailed"));
               else setMessage(t("errorGeneric"));
               return;
             }

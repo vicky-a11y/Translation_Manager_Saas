@@ -174,6 +174,7 @@
     "errorMissing": "Please fill in all required fields.",
     "errorConsumerEmail": "Please use a company-domain email or choose manual review.",
     "errorAuth": "Please sign in first.",
+    "errorEmailFailed": "The tenant was created, but the verification email could not be sent. Try submitting again later or ask an admin to check the Resend settings.",
     "errorGeneric": "Something went wrong. Please try again."
   },
   "VerifyDomain": {

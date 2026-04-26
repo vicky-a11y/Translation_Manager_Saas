@@ -37,3 +37,6 @@ yarn-error.log*
 .pnpm-debug.log*
 supabase/.temp/
 
+
+.vercel
+.env*.local

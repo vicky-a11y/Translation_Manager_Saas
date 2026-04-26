@@ -6,7 +6,7 @@ import {DashboardShell} from "@/components/layout/dashboard-shell";
 import {createClient} from "@/lib/supabase/server";
 import {loadWorkspaceTenantOptions} from "@/lib/tenant/load-workspace-tenants";
 import {getWorkspaceTenantId} from "@/lib/tenant/workspace";
-import {userHasPasswordConfigured} from "@/lib/tenant/post-auth";
+import {hasBlockingDomainVerification, userHasPasswordConfigured} from "@/lib/tenant/post-auth";
 import {type AppLocale, defaultLocale, locales} from "@/i18n/routing";
 
 function isLocale(value: string): value is AppLocale {
@@ -47,16 +47,7 @@ export default async function AccountPage({params}: {params: Promise<{locale: st
     redirect(`/${locale}/welcome`);
   }
 
-  const {data: pendingDomain} = await supabase
-    .from("domain_verifications")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("status", "pending")
-    .gt("expires_at", new Date().toISOString())
-    .limit(1)
-    .maybeSingle();
-
-  if (pendingDomain) {
+  if (await hasBlockingDomainVerification(supabase, user.id)) {
     redirect(`/${locale}/welcome`);
   }
 

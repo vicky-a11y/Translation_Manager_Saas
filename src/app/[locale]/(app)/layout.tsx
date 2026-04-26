@@ -4,6 +4,7 @@ import {AppPermissionProvider} from "@/components/permissions/app-permission-pro
 import {createClient} from "@/lib/supabase/server";
 import {parsePermissions} from "@/lib/permissions/parse-permissions";
 import type {ProfileRole} from "@/lib/permissions/types";
+import {getTenantAppAccessState} from "@/lib/tenant/post-auth";
 import {getWorkspaceTenantId} from "@/lib/tenant/workspace";
 import {type AppLocale, defaultLocale, locales} from "@/i18n/routing";
 
@@ -50,27 +51,15 @@ export default async function AppShellLayout({
     redirect(`/${locale}/welcome`);
   }
 
-  const {data: pendingDomain} = await supabase
-    .from("domain_verifications")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("status", "pending")
-    .gt("expires_at", new Date().toISOString())
-    .limit(1)
-    .maybeSingle();
-
-  if (pendingDomain) {
-    redirect(`/${locale}/welcome`);
-  }
-
-  const {data: activeMembership} = await supabase
-    .from("tenant_memberships")
-    .select("is_active")
-    .eq("user_id", user.id)
-    .eq("tenant_id", workspaceId)
-    .maybeSingle();
-
-  if (!activeMembership?.is_active) {
+  const accessState = await getTenantAppAccessState(supabase, user.id, user.email);
+  if (!accessState.ok) {
+    console.warn("App shell access blocked:", {
+      userId: user.id,
+      email: user.email,
+      reason: accessState.reason,
+      workspaceId: accessState.workspaceId,
+      details: accessState.details,
+    });
     redirect(`/${locale}/welcome`);
   }
 

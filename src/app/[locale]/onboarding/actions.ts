@@ -8,7 +8,10 @@ import type {SupabaseClient} from "@supabase/supabase-js";
 
 type ActionResult =
   | {ok: true; devVerifyUrl?: string}
-  | {ok: false; code: "not_authenticated" | "missing_fields" | "consumer_email" | "insert_failed" | "unknown"};
+  | {
+      ok: false;
+      code: "not_authenticated" | "missing_fields" | "consumer_email" | "insert_failed" | "email_failed" | "unknown";
+    };
 
 /**
  * 以 DB 端 SECURITY DEFINER 依序建立：tenants → tenant_memberships (owner) → profiles（工作區與姓名）→ domain_verifications。
@@ -59,7 +62,10 @@ async function resolvePublicBaseUrl() {
 async function sendVerificationEmail(params: {to: string; verifyUrl: string; subject: string; html: string}) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
-  if (!key || !from) return false;
+  if (!key || !from) {
+    console.error("Resend verification email skipped: missing RESEND_API_KEY or RESEND_FROM_EMAIL");
+    return false;
+  }
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -74,6 +80,17 @@ async function sendVerificationEmail(params: {to: string; verifyUrl: string; sub
       html: params.html,
     }),
   });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("Resend verification email failed:", {
+      status: res.status,
+      statusText: res.statusText,
+      body,
+      from,
+      to: params.to,
+    });
+  }
 
   return res.ok;
 }
@@ -131,6 +148,9 @@ export async function submitDomainOnboarding(formData: FormData): Promise<Action
   });
 
   if (!sent) {
+    if (process.env.NODE_ENV === "production") {
+      return {ok: false, code: "email_failed"};
+    }
     return {ok: true, devVerifyUrl: verifyUrl};
   }
 

@@ -2,6 +2,21 @@ import type {SupabaseClient} from "@supabase/supabase-js";
 
 import {getWorkspaceTenantId} from "@/lib/tenant/workspace";
 
+export type TenantAppAccessState =
+  | {ok: true; workspaceId: string}
+  | {
+      ok: false;
+      reason:
+        | "password_not_configured"
+        | "profile_missing"
+        | "profile_error"
+        | "workspace_missing"
+        | "membership_inactive"
+        | "domain_verification_pending";
+      workspaceId?: string;
+      details?: unknown;
+    };
+
 export async function userHasPasswordConfigured(
   supabase: SupabaseClient,
   userId: string,
@@ -21,35 +36,16 @@ export async function userHasPasswordConfigured(
   return false;
 }
 
-/**
- * 是否可進入租戶主應用 `(app)`：已設定登入密碼、有目前工作區、在該租戶為有效成員、且無未完成的網域驗證。
- */
-export async function canAccessTenantAppShell(
-  supabase: SupabaseClient,
-  userId: string,
-  userEmail?: string | null,
-): Promise<boolean> {
-  if (!(await userHasPasswordConfigured(supabase, userId, userEmail))) return false;
-
-  const {data: profile, error: profileError} = await supabase
-    .from("profiles")
-    .select("tenant_id, active_tenant_id")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (profileError || !profile) return false;
-
-  const workspaceId = getWorkspaceTenantId(profile);
-  if (!workspaceId) return false;
-
-  const {data: membership} = await supabase
-    .from("tenant_memberships")
-    .select("is_active")
+export async function hasBlockingDomainVerification(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  const {data: verifiedDomain} = await supabase
+    .from("domain_verifications")
+    .select("id")
     .eq("user_id", userId)
-    .eq("tenant_id", workspaceId)
+    .eq("status", "verified")
+    .limit(1)
     .maybeSingle();
 
-  if (!membership?.is_active) return false;
+  if (verifiedDomain) return false;
 
   const {data: pendingDomain} = await supabase
     .from("domain_verifications")
@@ -60,9 +56,56 @@ export async function canAccessTenantAppShell(
     .limit(1)
     .maybeSingle();
 
-  if (pendingDomain) return false;
+  return Boolean(pendingDomain);
+}
 
-  return true;
+/**
+ * 是否可進入租戶主應用 `(app)`：已設定登入密碼、有目前工作區、在該租戶為有效成員、且無未完成的網域驗證。
+ */
+export async function getTenantAppAccessState(
+  supabase: SupabaseClient,
+  userId: string,
+  userEmail?: string | null,
+): Promise<TenantAppAccessState> {
+  if (!(await userHasPasswordConfigured(supabase, userId, userEmail))) {
+    return {ok: false, reason: "password_not_configured"};
+  }
+
+  const {data: profile, error: profileError} = await supabase
+    .from("profiles")
+    .select("tenant_id, active_tenant_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profileError) return {ok: false, reason: "profile_error", details: profileError};
+  if (!profile) return {ok: false, reason: "profile_missing"};
+
+  const workspaceId = getWorkspaceTenantId(profile);
+  if (!workspaceId) return {ok: false, reason: "workspace_missing"};
+
+  const {data: membership} = await supabase
+    .from("tenant_memberships")
+    .select("is_active")
+    .eq("user_id", userId)
+    .eq("tenant_id", workspaceId)
+    .maybeSingle();
+
+  if (!membership?.is_active) return {ok: false, reason: "membership_inactive", workspaceId};
+
+  if (await hasBlockingDomainVerification(supabase, userId)) {
+    return {ok: false, reason: "domain_verification_pending", workspaceId};
+  }
+
+  return {ok: true, workspaceId};
+}
+
+export async function canAccessTenantAppShell(
+  supabase: SupabaseClient,
+  userId: string,
+  userEmail?: string | null,
+): Promise<boolean> {
+  const state = await getTenantAppAccessState(supabase, userId, userEmail);
+  return state.ok;
 }
 
 export async function getPostLoginHref(
