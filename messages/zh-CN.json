@@ -151,6 +151,7 @@
     "completeSignIn": "请为 {email} 完成登录（密码或验证码依画面指示）。",
     "invalidTitle": "邀请链接无效",
     "invalidDescription": "此邀请可能已过期、已被使用或不存在。请联系邀请方重新发送邀请。",
+    "invalidExpiredDescription": "此邀请链接已过期。请联系邀请方在成员管理页重新发送邀请（系统会生成新链接）。",
     "backToLogin": "返回登录页",
     "joinBanner": "你收到租户邀请。请使用受邀邮箱登录或注册，完成后将自动加入该租户。",
     "joinBannerWithTenant": "你收到加入「{tenant}」的邀请。请使用受邀邮箱登录或注册。",

@@ -5,6 +5,7 @@ import {normalizeInviteToken} from "./normalize-invite-token";
 export type InvitePreview = {
   valid: boolean;
   tenantName?: string;
+  reason?: "expired" | "not_found" | "malformed";
   rpcError?: string;
 };
 
@@ -25,10 +26,11 @@ function parsePreviewPayload(data: unknown): InvitePreview {
     return {valid: false};
   }
 
-  const row = data as {valid?: boolean | string; tenant_name?: string};
+  const row = data as {valid?: boolean | string; tenant_name?: string; reason?: string};
   const valid = row.valid === true || row.valid === "true";
   if (!valid) {
-    return {valid: false};
+    const reason = row.reason === "expired" ? "expired" : "not_found";
+    return {valid: false, reason};
   }
 
   return {valid: true, tenantName: row.tenant_name?.trim() || undefined};
@@ -37,7 +39,7 @@ function parsePreviewPayload(data: unknown): InvitePreview {
 export async function loadInvitePreview(rawToken: string): Promise<InvitePreview> {
   const token = normalizeInviteToken(rawToken);
   if (!token) {
-    return {valid: false};
+    return {valid: false, reason: "malformed"};
   }
 
   const supabase = createAnonPublicClient();
@@ -46,9 +48,9 @@ export async function loadInvitePreview(rawToken: string): Promise<InvitePreview
   if (error) {
     const {data: active, error: activeError} = await supabase.rpc("invitation_token_active", {p_token: token});
     if (activeError) {
-      return {valid: false, rpcError: activeError.message};
+      return {valid: false, reason: "not_found", rpcError: activeError.message};
     }
-    return {valid: Boolean(active)};
+    return {valid: Boolean(active), reason: active ? undefined : "not_found"};
   }
 
   return parsePreviewPayload(data);

@@ -45,6 +45,7 @@ export function LoginForm({
   const inviteT = useTranslations("Invite");
   const appT = useTranslations("App");
   const [inviteTenantName, setInviteTenantName] = useState<string | undefined>();
+  const [inviteInvalidReason, setInviteInvalidReason] = useState<"expired" | "not_found" | "malformed" | null>(null);
   const [inviteCheckState, setInviteCheckState] = useState<"idle" | "loading" | "valid" | "invalid">(() =>
     inviteToken ? "loading" : "idle",
   );
@@ -114,9 +115,11 @@ export function LoginForm({
       if (cancelled) return;
       if (preview.valid) {
         setInviteTenantName(preview.tenantName);
+        setInviteInvalidReason(null);
         setInviteCheckState("valid");
         return;
       }
+      setInviteInvalidReason(preview.reason ?? "not_found");
       setInviteCheckState("invalid");
     })();
 
@@ -442,7 +445,9 @@ export function LoginForm({
     return (
       <main className="mx-auto w-full max-w-md space-y-4 rounded-xl border border-border bg-card p-6 text-center shadow-sm">
         <h1 className="text-xl font-semibold tracking-tight">{inviteT("invalidTitle")}</h1>
-        <p className="text-sm text-muted-foreground">{inviteT("invalidDescription")}</p>
+        <p className="text-sm text-muted-foreground">
+          {inviteInvalidReason === "expired" ? inviteT("invalidExpiredDescription") : inviteT("invalidDescription")}
+        </p>
         <a
           href={`/${locale}/login`}
           className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"

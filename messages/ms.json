@@ -151,6 +151,7 @@
     "completeSignIn": "Lengkapkan log masuk untuk {email} (ikut arahan skrin).",
     "invalidTitle": "Pautan jemputan tidak sah",
     "invalidDescription": "Jemputan ini mungkin tamat tempoh, telah digunakan, atau tidak wujud. Minta penjemput hantar semula.",
+    "invalidExpiredDescription": "Pautan jemputan ini telah tamat tempoh. Minta penjemput hantar semula dari halaman Ahli (pautan baharu akan dijana).",
     "backToLogin": "Kembali ke log masuk",
     "joinBanner": "Anda menerima jemputan penyewa. Log masuk atau daftar dengan e-mel dijemput untuk sertai.",
     "joinBannerWithTenant": "Anda dijemput sertai \"{tenant}\". Log masuk atau daftar dengan e-mel dijemput.",

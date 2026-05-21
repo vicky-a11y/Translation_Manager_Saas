@@ -29,6 +29,39 @@ function redirectWithInviteStatus(locale: AppLocale, status: InviteStatus): neve
   redirect(`/${locale}/members?invite=${status}`);
 }
 
+function addDaysIso(days: number) {
+  return new Date(Date.now() + days * 86400000).toISOString();
+}
+
+async function refreshInvitationToken(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  invitationId: string,
+): Promise<string | null> {
+  const {data: refreshedToken, error: refreshError} = await supabase.rpc("refresh_member_invitation", {
+    p_invitation_id: invitationId,
+  });
+
+  if (!refreshError && refreshedToken) {
+    return String(refreshedToken);
+  }
+
+  // migration 046 尚未套用時：至少延長期限並沿用原 token
+  const {data: row, error: updateError} = await supabase
+    .from("invitations")
+    .update({expires_at: addDaysIso(14), status: "pending"})
+    .eq("id", invitationId)
+    .eq("status", "pending")
+    .select("token")
+    .maybeSingle();
+
+  if (updateError || !row?.token) {
+    console.error("Fallback refresh member invitation failed:", refreshError, updateError);
+    return null;
+  }
+
+  return String(row.token);
+}
+
 async function resolvePublicBaseUrl() {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
   if (configured) return configured;
@@ -152,15 +185,37 @@ export async function createMemberInvitation(formData: FormData): Promise<void> 
     .select("token")
     .single();
 
-  if (error) {
+  let token: string;
+
+  if (error?.code === "23505") {
+    const {data: existing} = await supabase
+      .from("invitations")
+      .select("id")
+      .eq("tenant_id", workspaceTenantId)
+      .eq("status", "pending")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (!existing?.id) {
+      console.error("Create member invitation failed (duplicate without row):", error);
+      redirectWithInviteStatus(locale, "create_failed");
+    }
+
+    const refreshed = await refreshInvitationToken(supabase, existing.id);
+    if (!refreshed) {
+      redirectWithInviteStatus(locale, "create_failed");
+    }
+
+    token = refreshed;
+  } else if (error) {
     console.error("Create member invitation failed:", error);
     redirectWithInviteStatus(locale, "create_failed");
-  }
-
-  const token = String(invitation?.token ?? "");
-  if (!token) {
-    console.error("Create member invitation failed: insert returned no token");
-    redirectWithInviteStatus(locale, "create_failed");
+  } else {
+    token = String(invitation?.token ?? "");
+    if (!token) {
+      console.error("Create member invitation failed: insert returned no token");
+      redirectWithInviteStatus(locale, "create_failed");
+    }
   }
 
   const base = await resolvePublicBaseUrl();
@@ -224,7 +279,7 @@ export async function resendMemberInvitation(formData: FormData): Promise<void> 
 
   const {data: invitation, error} = await supabase
     .from("invitations")
-    .select("email, token, status")
+    .select("email, status")
     .eq("id", invitationId)
     .eq("tenant_id", workspaceTenantId)
     .maybeSingle();
@@ -234,9 +289,15 @@ export async function resendMemberInvitation(formData: FormData): Promise<void> 
     redirectWithInviteStatus(locale, "validation");
   }
 
+  const refreshedToken = await refreshInvitationToken(supabase, invitationId);
+
+  if (!refreshedToken) {
+    redirectWithInviteStatus(locale, "validation");
+  }
+
   const {data: tenant} = await supabase.from("tenants").select("name").eq("id", workspaceTenantId).maybeSingle();
   const base = await resolvePublicBaseUrl();
-  const inviteUrl = `${base}/${locale}/login?invite=${encodeURIComponent(String(invitation.token))}`;
+  const inviteUrl = `${base}/${locale}/login?invite=${encodeURIComponent(refreshedToken)}`;
   const emailStatus = await sendInvitationEmail({
     to: invitation.email,
     inviteUrl,

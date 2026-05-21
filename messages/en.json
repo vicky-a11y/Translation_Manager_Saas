@@ -151,6 +151,7 @@
     "completeSignIn": "Complete sign-in for {email} (password or code as shown).",
     "invalidTitle": "Invalid invitation link",
     "invalidDescription": "This invitation may have expired, already been used, or does not exist. Ask the inviter to send a new one.",
+    "invalidExpiredDescription": "This invitation link has expired. Ask the inviter to resend from the Members page (a new link will be generated).",
     "backToLogin": "Back to sign in",
     "joinBanner": "You have a tenant invitation. Sign in or register with the invited email to join.",
     "joinBannerWithTenant": "You are invited to join \"{tenant}\". Sign in or register with the invited email.",
