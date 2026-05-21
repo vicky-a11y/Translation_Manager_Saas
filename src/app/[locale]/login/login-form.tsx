@@ -12,6 +12,7 @@ import {Input} from "@/components/ui/input";
 import {InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot} from "@/components/ui/input-otp";
 import {Label} from "@/components/ui/label";
 import {createClient} from "@/lib/supabase/client";
+import {createAnonPublicClient} from "@/lib/supabase/anon-browser-client";
 
 const RESEND_COOLDOWN_SEC = 60;
 
@@ -28,6 +29,7 @@ export function LoginForm({
   locale,
   next,
   inviteToken,
+  inviteTenantName,
   lockedEmail,
   passwordJustUpdated,
 }: {
@@ -35,11 +37,13 @@ export function LoginForm({
   /** 保留供未來導向參數擴充 */
   next?: string;
   inviteToken?: string;
+  inviteTenantName?: string;
   lockedEmail?: string;
   /** 若為 true，顯示「密碼已更新，請重新登入」的綠色提示橫幅 */
   passwordJustUpdated?: boolean;
 }) {
   const t = useTranslations("Auth");
+  const inviteT = useTranslations("Invite");
   const appT = useTranslations("App");
   const [email, setEmail] = useState(lockedEmail?.trim() ?? "");
   const [password, setPassword] = useState("");
@@ -131,6 +135,20 @@ export function LoginForm({
     })();
   }, [lockedEmail, requestOtpEmail]);
 
+  async function ensureInviteEmailMatches(addr: string) {
+    if (!inviteToken) return true;
+    const supabase = createAnonPublicClient();
+    const {data, error} = await supabase.rpc("invitation_email_matches", {
+      p_token: inviteToken,
+      p_email: addr,
+    });
+    if (error || !data) {
+      setMessage(inviteT("emailMismatch"));
+      return false;
+    }
+    return true;
+  }
+
   async function syncPasswordFlagIfMissing(userId: string) {
     const supabase = createClient();
     const {data: prof} = await supabase.from("profiles").select("password_set_at").eq("id", userId).maybeSingle();
@@ -174,6 +192,7 @@ export function LoginForm({
     e.preventDefault();
     const addr = email.trim();
     if (!addr) return;
+    if (!(await ensureInviteEmailMatches(addr))) return;
     setLoading(true);
     setMessage(null);
     const supabase = createClient();
@@ -198,6 +217,7 @@ export function LoginForm({
     e.preventDefault();
     const addr = email.trim();
     if (!addr) return;
+    if (!(await ensureInviteEmailMatches(addr))) return;
     setLoading(true);
     setMessage(null);
     const supabase = createClient();
@@ -319,7 +339,8 @@ export function LoginForm({
   }
 
   const emailLocked = Boolean(lockedEmail?.trim());
-  const showTabSwitch = !emailLocked && tab !== "forgot";
+  const showTabSwitch = !emailLocked && tab !== "forgot" && !inviteToken;
+  const showInviteRegisterTab = Boolean(inviteToken) && !emailLocked && tab !== "forgot";
 
   function switchTab(nextTab: AuthTab) {
     setTab(nextTab);
@@ -357,10 +378,16 @@ export function LoginForm({
         : tab === "forgot"
           ? t("forgotEmailSubtitle")
           : tab === "register"
-            ? t("registerSubtitle")
+            ? inviteToken
+              ? inviteT("registerSubtitle")
+              : t("registerSubtitle")
             : emailLocked
               ? t("passwordStepSubtitle", {email})
-              : t("signInSubtitle");
+              : inviteToken
+                ? inviteTenantName
+                  ? inviteT("loginSubtitleWithTenant", {tenant: inviteTenantName})
+                  : inviteT("loginSubtitle")
+                : t("signInSubtitle");
 
   const cardHeading =
     step === "newpw"
@@ -371,7 +398,9 @@ export function LoginForm({
           ? t("otpHeading")
           : tab === "register"
             ? t("registerHeading")
-            : t("signInHeading");
+            : inviteToken
+              ? inviteT("title")
+              : t("signInHeading");
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm sm:p-8">
@@ -390,8 +419,37 @@ export function LoginForm({
         </div>
       ) : null}
 
+      {inviteToken && step === "main" ? (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          {inviteTenantName ? inviteT("joinBannerWithTenant", {tenant: inviteTenantName}) : inviteT("joinBanner")}
+        </div>
+      ) : null}
+
       {lockedBootstrapping && loading && step === "main" ? (
         <p className="text-center text-sm text-muted-foreground">{t("checkingLoginMode")}</p>
+      ) : null}
+
+      {showInviteRegisterTab && step === "main" ? (
+        <div className="flex rounded-lg border border-border p-1 text-sm font-medium">
+          <button
+            type="button"
+            className={`flex-1 rounded-md py-2 transition-colors ${
+              tab === "signin" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => switchTab("signin")}
+          >
+            {t("signInHeading")}
+          </button>
+          <button
+            type="button"
+            className={`flex-1 rounded-md py-2 transition-colors ${
+              tab === "register" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => switchTab("register")}
+          >
+            {t("registerHeading")}
+          </button>
+        </div>
       ) : null}
 
       {showTabSwitch && step === "main" ? (

@@ -229,10 +229,10 @@ export default async function MembersPage({
                     <p className="mt-1 break-all text-xs text-zinc-500">
                       {membersT("inviteLinkLabel")}{" "}
                       <a
-                        href={`/${locale}/invite/${inv.token}`}
+                        href={`/${locale}/login?invite=${encodeURIComponent(String(inv.token))}`}
                         className="text-blue-600 underline underline-offset-2 hover:text-blue-700"
                       >
-                        {`/${locale}/invite/${inv.token}`}
+                        {`/${locale}/login?invite=${String(inv.token)}`}
                       </a>
                     </p>
                   </div>

@@ -24,6 +24,7 @@
   "Dashboard": {
     "heading": "Dashboard",
     "welcome": "Welcome back. Here is today's operations overview.",
+    "welcomeWithName": "Welcome back, {name}. Here is today's operations overview.",
     "activeProjects": "Active Projects",
     "monthlyRevenue": "Monthly Revenue",
     "pendingQuotes": "Pending Quotes",
@@ -147,7 +148,15 @@
     "checking": "Checking…",
     "emailMismatch": "That email does not match this invitation, or the invite is no longer valid.",
     "otpExplain": "A code was sent to {email}. Enter the 6-digit code below.",
-    "completeSignIn": "Complete sign-in for {email} (password or code as shown)."
+    "completeSignIn": "Complete sign-in for {email} (password or code as shown).",
+    "invalidTitle": "Invalid invitation link",
+    "invalidDescription": "This invitation may have expired, already been used, or does not exist. Ask the inviter to send a new one.",
+    "backToLogin": "Back to sign in",
+    "joinBanner": "You have a tenant invitation. Sign in or register with the invited email to join.",
+    "joinBannerWithTenant": "You are invited to join \"{tenant}\". Sign in or register with the invited email.",
+    "loginSubtitle": "Enter the invited email. Existing users sign in; new users switch to Register and verify.",
+    "loginSubtitleWithTenant": "Enter the invited email to join \"{tenant}\". Existing users sign in; new users register and verify.",
+    "registerSubtitle": "Enter the invited email. We will send a verification code to create your account and join the tenant."
   },
   "Onboarding": {
     "title": "Set up your organization",

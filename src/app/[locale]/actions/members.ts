@@ -164,7 +164,7 @@ export async function createMemberInvitation(formData: FormData): Promise<void> 
   }
 
   const base = await resolvePublicBaseUrl();
-  const inviteUrl = `${base}/${locale}/invite/${token}`;
+  const inviteUrl = `${base}/${locale}/login?invite=${encodeURIComponent(token)}`;
   const emailStatus = await sendInvitationEmail({
     to: email,
     inviteUrl,
@@ -236,7 +236,7 @@ export async function resendMemberInvitation(formData: FormData): Promise<void> 
 
   const {data: tenant} = await supabase.from("tenants").select("name").eq("id", workspaceTenantId).maybeSingle();
   const base = await resolvePublicBaseUrl();
-  const inviteUrl = `${base}/${locale}/invite/${invitation.token}`;
+  const inviteUrl = `${base}/${locale}/login?invite=${encodeURIComponent(String(invitation.token))}`;
   const emailStatus = await sendInvitationEmail({
     to: invitation.email,
     inviteUrl,

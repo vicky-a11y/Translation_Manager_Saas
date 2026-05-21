@@ -24,6 +24,7 @@
   "Dashboard": {
     "heading": "Papan pemuka",
     "welcome": "Selamat kembali. Ini ringkasan operasi hari ini.",
+    "welcomeWithName": "Selamat kembali, {name}. Ini ringkasan operasi hari ini.",
     "activeProjects": "Projek Aktif",
     "monthlyRevenue": "Hasil Bulanan",
     "pendingQuotes": "Sebutharga Tertunda",
@@ -147,7 +148,15 @@
     "checking": "Menyemak…",
     "emailMismatch": "E-mel tidak sepadan dengan jemputan ini, atau jemputan tidak lagi sah.",
     "otpExplain": "Kod telah dihantar ke {email}. Masukkan 6 digit di bawah.",
-    "completeSignIn": "Lengkapkan log masuk untuk {email} (ikut arahan skrin)."
+    "completeSignIn": "Lengkapkan log masuk untuk {email} (ikut arahan skrin).",
+    "invalidTitle": "Pautan jemputan tidak sah",
+    "invalidDescription": "Jemputan ini mungkin tamat tempoh, telah digunakan, atau tidak wujud. Minta penjemput hantar semula.",
+    "backToLogin": "Kembali ke log masuk",
+    "joinBanner": "Anda menerima jemputan penyewa. Log masuk atau daftar dengan e-mel dijemput untuk sertai.",
+    "joinBannerWithTenant": "Anda dijemput sertai \"{tenant}\". Log masuk atau daftar dengan e-mel dijemput.",
+    "loginSubtitle": "Masukkan e-mel dijemput. Pengguna sedia ada log masuk; pengguna baharu daftar dan sahkan.",
+    "loginSubtitleWithTenant": "Masukkan e-mel dijemput untuk sertai \"{tenant}\". Pengguna sedia ada log masuk; pengguna baharu daftar dan sahkan.",
+    "registerSubtitle": "Masukkan e-mel dijemput. Kami akan hantar kod pengesahan untuk cipta akaun dan sertai penyewa."
   },
   "Onboarding": {
     "title": "Sediakan organisasi anda",

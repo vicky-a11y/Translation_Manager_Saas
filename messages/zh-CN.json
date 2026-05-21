@@ -24,6 +24,7 @@
   "Dashboard": {
     "heading": "仪表板",
     "welcome": "欢迎回来，这是今日翻译营运总览。",
+    "welcomeWithName": "欢迎回来，{name}，这是今日翻译营运总览。",
     "activeProjects": "进行中项目",
     "monthlyRevenue": "本月营收",
     "pendingQuotes": "待回复报价",
@@ -147,7 +148,15 @@
     "checking": "检查中…",
     "emailMismatch": "该邮箱与邀请不符，或邀请已失效。",
     "otpExplain": "验证码已发送至 {email}，请在下方输入 6 位数字。",
-    "completeSignIn": "请为 {email} 完成登录（密码或验证码依画面指示）。"
+    "completeSignIn": "请为 {email} 完成登录（密码或验证码依画面指示）。",
+    "invalidTitle": "邀请链接无效",
+    "invalidDescription": "此邀请可能已过期、已被使用或不存在。请联系邀请方重新发送邀请。",
+    "backToLogin": "返回登录页",
+    "joinBanner": "你收到租户邀请。请使用受邀邮箱登录或注册，完成后将自动加入该租户。",
+    "joinBannerWithTenant": "你收到加入「{tenant}」的邀请。请使用受邀邮箱登录或注册。",
+    "loginSubtitle": "请输入受邀邮箱；已有账号者请登录，新用户请切换至注册并完成验证。",
+    "loginSubtitleWithTenant": "请输入受邀邮箱以加入「{tenant}」。已有账号者请登录，新用户请注册并完成验证。",
+    "registerSubtitle": "请输入受邀邮箱，我们将发送验证码以建立新账号并加入租户。"
   },
   "Onboarding": {
     "title": "初始化组织",

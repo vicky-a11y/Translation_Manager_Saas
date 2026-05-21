@@ -18,6 +18,7 @@ export type DashboardRecentRow = {
 
 type Props = {
   locale: AppLocale;
+  displayName: string | null;
   inProgress: number;
   pendingDelivery: number;
   closed: number;
@@ -32,6 +33,7 @@ function caseNumberFromId(id: string) {
 
 export async function DashboardOverviewSection({
   locale,
+  displayName,
   inProgress,
   pendingDelivery,
   closed,
@@ -65,7 +67,9 @@ export async function DashboardOverviewSection({
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight text-foreground">{t("heading")}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t("welcome")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {displayName ? t("welcomeWithName", {name: displayName}) : t("welcome")}
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

@@ -34,7 +34,7 @@ export default async function DashboardRoutePage({params}: {params: Promise<{loc
 
   const {data: profile} = await supabase
     .from("profiles")
-    .select("tenant_id, active_tenant_id")
+    .select("tenant_id, active_tenant_id, full_name, nickname")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -77,6 +77,7 @@ export default async function DashboardRoutePage({params}: {params: Promise<{loc
   const totalProjects = totalHeadRes.count ?? 0;
 
   const tenantName = tenant?.name ?? "Workspace";
+  const displayName = profile?.full_name?.trim() || profile?.nickname?.trim() || null;
 
   return (
     <DashboardShell
@@ -100,6 +101,7 @@ export default async function DashboardRoutePage({params}: {params: Promise<{loc
     >
       <DashboardOverviewSection
         locale={locale}
+        displayName={displayName}
         inProgress={inProgress}
         pendingDelivery={pendingDelivery}
         closed={closed}

@@ -10,6 +10,14 @@ export type PermissionKey = (typeof PERMISSION_KEYS)[number];
 
 export type PermissionFlags = Record<PermissionKey, boolean>;
 
+export const INVITEE_PERMISSION_FLAGS: PermissionFlags = {
+  can_view_finance: false,
+  can_edit_projects: false,
+  can_manage_vendors: false,
+  can_assign_tasks: false,
+  can_access_settings: false,
+};
+
 export const DEFAULT_PERMISSION_FLAGS: PermissionFlags = {
   can_view_finance: false,
   can_edit_projects: true,
