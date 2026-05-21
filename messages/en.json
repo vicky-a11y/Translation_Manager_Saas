@@ -33,7 +33,10 @@
     "statClosed": "Closed",
     "recentHeading": "Recent projects",
     "colCaseNumber": "Case no.",
-    "colStatus": "Status",
+    "colProjectCode": "Project no.",
+    "colTitle": "Project title",
+    "colDeliveryDeadline": "Delivery deadline",
+    "colStatus": "Project status",
     "emptyNoProjects": "No projects yet. Create a new project to get started.",
     "emptyRecentList": "No recent projects to show.",
     "statusLabel": {

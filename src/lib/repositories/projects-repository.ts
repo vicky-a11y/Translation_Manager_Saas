@@ -8,6 +8,13 @@ import type {TenantContext} from "./tenant-context";
 export function createProjectsRepository(ctx: TenantContext) {
   const scoped = () => createTenantScopedSupabase(ctx.supabase, ctx.tenantId);
 
+  const listRecentSummary = (limit: number) =>
+    scoped()
+      .from("projects")
+      .select("id, project_code, title, delivery_deadline, status")
+      .order("created_at", {ascending: false})
+      .limit(limit);
+
   return {
     scoped,
 
@@ -26,9 +33,10 @@ export function createProjectsRepository(ctx: TenantContext) {
         .in("status", [...statuses]);
     },
 
-    listRecentIdStatus(limit: number) {
-      return scoped().from("projects").select("id, status").order("created_at", {ascending: false}).limit(limit);
-    },
+    listRecentSummary,
+
+    /** @deprecated 使用 listRecentSummary */
+    listRecentIdStatus: listRecentSummary,
 
     countHeadAll() {
       return scoped().from("projects").select("*", {count: "exact", head: true});

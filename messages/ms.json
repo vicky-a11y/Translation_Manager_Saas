@@ -33,7 +33,10 @@
     "statClosed": "Ditutup",
     "recentHeading": "Projek terkini",
     "colCaseNumber": "No. kes",
-    "colStatus": "Status",
+    "colProjectCode": "No. projek",
+    "colTitle": "Nama projek",
+    "colDeliveryDeadline": "Tarikh akhir penghantaran",
+    "colStatus": "Status projek",
     "emptyNoProjects": "Tiada projek buat masa ini. Sila cipta projek baharu.",
     "emptyRecentList": "Tiada projek terkini untuk dipaparkan.",
     "statusLabel": {

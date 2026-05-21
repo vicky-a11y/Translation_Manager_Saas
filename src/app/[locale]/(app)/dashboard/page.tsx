@@ -1,7 +1,7 @@
 import {redirect} from "next/navigation";
 import {getTranslations} from "next-intl/server";
 
-import {DashboardOverviewSection} from "@/components/dashboard/dashboard-overview-section";
+import {DashboardOverviewSection, type DashboardRecentRow} from "@/components/dashboard/dashboard-overview-section";
 import {DashboardShell} from "@/components/layout/dashboard-shell";
 import {createClient} from "@/lib/supabase/server";
 import {createProjectsRepository} from "@/lib/repositories/projects-repository";
@@ -60,7 +60,7 @@ export default async function DashboardRoutePage({params}: {params: Promise<{loc
     projectsRepo.countHeadNotInStatuses(inProgressExcluded),
     projectsRepo.countHeadInStatuses(pendingDeliveryStatuses),
     projectsRepo.countHeadInStatuses(closedStatuses),
-    projectsRepo.listRecentIdStatus(5),
+    projectsRepo.listRecentSummary(5),
     projectsRepo.countHeadAll(),
   ]);
 
@@ -73,7 +73,7 @@ export default async function DashboardRoutePage({params}: {params: Promise<{loc
   const inProgress = inProgressRes.count ?? 0;
   const pendingDelivery = pendingDeliveryRes.count ?? 0;
   const closed = closedRes.count ?? 0;
-  const recent = recentRes.data ?? [];
+  const recent = (recentRes.data ?? []) as DashboardRecentRow[];
   const totalProjects = totalHeadRes.count ?? 0;
 
   const tenantName = tenant?.name ?? "Workspace";

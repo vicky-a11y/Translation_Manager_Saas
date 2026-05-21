@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import {usePathname} from "next/navigation";
-import {Building2, FolderKanban, LayoutDashboard, Languages, Settings2, UserRound, Users, Wallet} from "lucide-react";
+import {
+  Building2,
+  FolderKanban,
+  LayoutDashboard,
+  Languages,
+  Settings2,
+  UserRound,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 
 import {LogoutButton} from "@/components/auth/logout-button";
 import {usePermission} from "@/hooks/use-permission";
@@ -25,6 +35,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import type {AppLocale} from "@/i18n/routing";
+import {cn} from "@/lib/utils";
 
 import {LanguageSwitcher} from "./language-switcher";
 import {TenantSwitcher, type TenantSwitcherOption} from "./tenant-switcher";
@@ -51,6 +62,36 @@ type DashboardShellProps = {
   labels: NavLabels;
   children: React.ReactNode;
 };
+
+type DashboardNavItemProps = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  isActive: boolean;
+  allowed: boolean;
+};
+
+function DashboardNavItem({href, label, icon: Icon, isActive, allowed}: DashboardNavItemProps) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={allowed && isActive}
+        disabled={!allowed}
+        tooltip={label}
+        className={cn(
+          "max-w-full transition-colors duration-150 group-data-[collapsible=icon]:!w-full",
+          allowed
+            ? "w-fit rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            : "w-fit cursor-not-allowed rounded-lg text-muted-foreground/50 opacity-100 hover:bg-transparent hover:text-muted-foreground/50 disabled:opacity-100 [&_svg]:text-muted-foreground/40",
+        )}
+        render={allowed ? <Link href={href} /> : undefined}
+      >
+        <Icon className="size-4 shrink-0" />
+        <span className="min-w-0 truncate">{label}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
 export function DashboardShell({
   locale,
@@ -97,120 +138,64 @@ export function DashboardShell({
             <SidebarGroupLabel className="truncate">{labels.dashboard}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={dashboardActive}
-                    tooltip={labels.dashboard}
-                    render={<Link href={dashboardPath} />}
-                  >
-                    <LayoutDashboard className="size-4 shrink-0" />
-                    <span className="min-w-0 flex-1 truncate">{labels.dashboard}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                {canSeeMembersNav ? (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={membersActive}
-                      tooltip={labels.members}
-                      render={<Link href={membersPath} />}
-                    >
-                      <Users className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{labels.members}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ) : null}
-                {can("can_view_finance") ? (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={financeActive}
-                      tooltip={labels.finance}
-                      render={<Link href={financePath} />}
-                    >
-                      <Wallet className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{labels.finance}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ) : null}
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    isActive={accountActive}
-                    tooltip={labels.account}
-                    render={<Link href={accountPath} />}
-                  >
-                    <UserRound className="size-4 shrink-0" />
-                    <span className="min-w-0 flex-1 truncate">{labels.account}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  {can("can_edit_projects") ? (
-                    <SidebarMenuButton
-                      isActive={projectsActive}
-                      tooltip={labels.projects}
-                      render={<Link href={projectsPath} />}
-                    >
-                      <FolderKanban className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{labels.projects}</span>
-                    </SidebarMenuButton>
-                  ) : (
-                    <SidebarMenuButton disabled tooltip={labels.projects}>
-                      <FolderKanban className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{labels.projects}</span>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
+                <DashboardNavItem
+                  href={dashboardPath}
+                  label={labels.dashboard}
+                  icon={LayoutDashboard}
+                  isActive={dashboardActive}
+                  allowed
+                />
+                <DashboardNavItem
+                  href={membersPath}
+                  label={labels.members}
+                  icon={Users}
+                  isActive={membersActive}
+                  allowed={canSeeMembersNav}
+                />
+                <DashboardNavItem
+                  href={financePath}
+                  label={labels.finance}
+                  icon={Wallet}
+                  isActive={financeActive}
+                  allowed={can("can_view_finance")}
+                />
+                <DashboardNavItem
+                  href={accountPath}
+                  label={labels.account}
+                  icon={UserRound}
+                  isActive={accountActive}
+                  allowed
+                />
+                <DashboardNavItem
+                  href={projectsPath}
+                  label={labels.projects}
+                  icon={FolderKanban}
+                  isActive={projectsActive}
+                  allowed={can("can_edit_projects")}
+                />
                 {labels.translators ? (
-                  <SidebarMenuItem>
-                    {can("can_manage_vendors") ? (
-                      <SidebarMenuButton
-                        isActive={translatorsActive}
-                        tooltip={labels.translators}
-                        render={<Link href={translatorsPath} />}
-                      >
-                        <Languages className="size-4 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate">{labels.translators}</span>
-                      </SidebarMenuButton>
-                    ) : (
-                      <SidebarMenuButton disabled tooltip={labels.translators}>
-                        <Languages className="size-4 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate">{labels.translators}</span>
-                      </SidebarMenuButton>
-                    )}
-                  </SidebarMenuItem>
+                  <DashboardNavItem
+                    href={translatorsPath}
+                    label={labels.translators}
+                    icon={Languages}
+                    isActive={translatorsActive}
+                    allowed={can("can_manage_vendors")}
+                  />
                 ) : null}
-                <SidebarMenuItem>
-                  {can("can_edit_projects") ? (
-                    <SidebarMenuButton
-                      isActive={customersActive}
-                      tooltip={labels.customers}
-                      render={<Link href={customersPath} />}
-                    >
-                      <Building2 className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{labels.customers}</span>
-                    </SidebarMenuButton>
-                  ) : (
-                    <SidebarMenuButton disabled tooltip={labels.customers}>
-                      <Building2 className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{labels.customers}</span>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  {can("can_access_settings") ? (
-                    <SidebarMenuButton
-                      isActive={settingsActive}
-                      tooltip={labels.settings}
-                      render={<Link href={settingsPath} />}
-                    >
-                      <Settings2 className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{labels.settings}</span>
-                    </SidebarMenuButton>
-                  ) : (
-                    <SidebarMenuButton disabled tooltip={labels.settings}>
-                      <Settings2 className="size-4 shrink-0" />
-                      <span className="min-w-0 flex-1 truncate">{labels.settings}</span>
-                    </SidebarMenuButton>
-                  )}
-                </SidebarMenuItem>
+                <DashboardNavItem
+                  href={customersPath}
+                  label={labels.customers}
+                  icon={Building2}
+                  isActive={customersActive}
+                  allowed={can("can_edit_projects")}
+                />
+                <DashboardNavItem
+                  href={settingsPath}
+                  label={labels.settings}
+                  icon={Settings2}
+                  isActive={settingsActive}
+                  allowed={can("can_access_settings")}
+                />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {getTranslations} from "next-intl/server";
 
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
@@ -13,6 +14,9 @@ import type {AppLocale} from "@/i18n/routing";
 
 export type DashboardRecentRow = {
   id: string;
+  project_code: string | null;
+  title: string;
+  delivery_deadline: string | null;
   status: string;
 };
 
@@ -26,9 +30,20 @@ type Props = {
   totalProjects: number;
 };
 
-function caseNumberFromId(id: string) {
-  const head = id.split("-")[0] ?? id;
-  return head.toUpperCase();
+function formatDateTime(value: string | null, locale: AppLocale) {
+  if (!value) return "—";
+  try {
+    const tag = locale === "zh-TW" || locale === "zh-CN" ? locale : locale === "ms" ? "ms-MY" : "en-US";
+    return new Intl.DateTimeFormat(tag, {dateStyle: "medium", timeStyle: "short"}).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function isOverdue(deadlineIso: string | null) {
+  if (!deadlineIso) return false;
+  const ms = new Date(deadlineIso).getTime();
+  return Number.isFinite(ms) && ms < Date.now();
 }
 
 export async function DashboardOverviewSection({
@@ -96,27 +111,47 @@ export async function DashboardOverviewSection({
             {t("emptyRecentList")}
           </p>
         ) : (
-          <div className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[8rem] font-mono">{t("colCaseNumber")}</TableHead>
-                  <TableHead className="whitespace-nowrap">{t("colStatus")}</TableHead>
+                  <TableHead className="min-w-[7rem] whitespace-nowrap">{t("colProjectCode")}</TableHead>
+                  <TableHead className="min-w-[10rem]">{t("colTitle")}</TableHead>
+                  <TableHead className="min-w-[9rem] whitespace-nowrap">{t("colDeliveryDeadline")}</TableHead>
+                  <TableHead className="min-w-[6rem] whitespace-nowrap">{t("colStatus")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recent.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-mono text-sm font-medium" title={row.id}>
-                      #{caseNumberFromId(row.id)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                        {statusLabels[row.status] ?? row.status}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {recent.map((row) => {
+                  const detailHref = `/${locale}/projects/${row.id}`;
+                  const overdue = isOverdue(row.delivery_deadline);
+                  return (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        <Link href={detailHref} className="text-primary underline-offset-4 hover:underline">
+                          {row.project_code?.trim() || row.id}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="max-w-[16rem] truncate" title={row.title}>
+                        <Link href={detailHref} className="text-primary underline-offset-4 hover:underline">
+                          {row.title}
+                        </Link>
+                      </TableCell>
+                      <TableCell
+                        className={
+                          overdue ? "whitespace-nowrap font-medium text-destructive" : "whitespace-nowrap text-muted-foreground"
+                        }
+                      >
+                        {formatDateTime(row.delivery_deadline, locale)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {statusLabels[row.status] ?? row.status}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

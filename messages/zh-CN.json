@@ -33,7 +33,10 @@
     "statClosed": "已结案",
     "recentHeading": "最近案件",
     "colCaseNumber": "案号",
-    "colStatus": "状态",
+    "colProjectCode": "项目编号",
+    "colTitle": "项目名称",
+    "colDeliveryDeadline": "交件截止日期",
+    "colStatus": "项目状态",
     "emptyNoProjects": "目前尚无案件，请建立新案件",
     "emptyRecentList": "暂无可显示的最近案件。",
     "statusLabel": {

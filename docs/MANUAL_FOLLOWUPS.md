@@ -30,9 +30,12 @@
 
 ## 2. 邀請連結與寄信
 
-- 受邀者需開啟的網址格式：**`/{locale}/invite/<邀請 token>`**（例如 `/zh-TW/invite/xxxxxxxx-xxxx-...`）。
+- 受邀者需開啟的網址格式：**`/{locale}/login?invite=<邀請 token>`**（例如 `/zh-TW/login?invite=xxxxxxxx-xxxx-...`）。
+- 舊版 **`/{locale}/invite/<token>`** 仍會自動 redirect 至登入頁（向後相容）。
 - Token 需自 **邀請紀錄 UI** 或 **`public.invitations`** 查詢。
 - 建立邀請後會嘗試透過 Resend 寄出含邀請連結的信件；若 Resend 尚未設定或寄送失敗，成員頁會顯示狀態提示，並在邀請紀錄中保留可手動提供給受邀者的連結。
+- **重新寄送**會刷新 token 並延長 14 天（migration **046**）；請一律使用**最新信件**中的連結。
+- 若連結顯示無效，請確認 Supabase 已套用 **045、046**，詳見 **`docs/RLS_DESIGN_AND_MITIGATIONS.md`** §3.3。
 
 ### 2.1 跨租戶身分：租戶端不得探知（產品／法遵原則）
 
@@ -68,13 +71,26 @@
 | 主題           | 相關路徑或檔案 |
 |----------------|----------------|
 | 歡迎頁         | `src/app/[locale]/welcome/` |
-| 邀請頁         | `src/app/[locale]/invite/[token]/` |
+| 邀請／登入     | `src/app/[locale]/login/`（`?invite=`）、`src/app/[locale]/invite/[token]/`（redirect） |
+| RLS 問題與修正 | **`docs/RLS_DESIGN_AND_MITIGATIONS.md`** |
 | 遷移 012／013  | `supabase/migrations/012_vendor_welcome_invite_refactor.sql`、`013_vendor_permissions_after_profiles_flags.sql` |
+| 遷移 033／047  | 帳戶密碼／基本資料 RPC（繞過 `profiles_update_own` 過嚴 CHECK） |
+| 遷移 042–046   | owner 權限、邀請登入、重寄刷新 token |
 | 登入後導向邏輯 | `src/lib/tenant/post-auth.ts` |
 
 ---
 
-*最後更新：對應「註冊／歡迎／vendor／邀請」改版完成後之手動項目清單。*
+*最後更新：2026-05-21 — 新增 RLS 手冊交叉引用、邀請連結格式更新。*
+
+---
+
+## 9. RLS 設計與已知問題（必讀）
+
+租戶隔離 RLS 整體方向正確，但 **`profiles_update_own` 對本人更新過嚴**，導致 owner 與新成員無法儲存基本資料、設定密碼等問題；已以 **SECURITY DEFINER RPC**（033、047）等方式補強。
+
+**完整說明、症狀對照、migration 順序與維運檢查清單：**
+
+→ **`docs/RLS_DESIGN_AND_MITIGATIONS.md`**
 
 ---
 
