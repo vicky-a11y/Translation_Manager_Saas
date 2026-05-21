@@ -13,6 +13,7 @@ import {InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot} from "@/compon
 import {Label} from "@/components/ui/label";
 import {createClient} from "@/lib/supabase/client";
 import {createAnonPublicClient} from "@/lib/supabase/anon-browser-client";
+import {loadInvitePreview} from "@/lib/invitations/load-invite-preview";
 
 const RESEND_COOLDOWN_SEC = 60;
 
@@ -29,7 +30,6 @@ export function LoginForm({
   locale,
   next,
   inviteToken,
-  inviteTenantName,
   lockedEmail,
   passwordJustUpdated,
 }: {
@@ -37,7 +37,6 @@ export function LoginForm({
   /** 保留供未來導向參數擴充 */
   next?: string;
   inviteToken?: string;
-  inviteTenantName?: string;
   lockedEmail?: string;
   /** 若為 true，顯示「密碼已更新，請重新登入」的綠色提示橫幅 */
   passwordJustUpdated?: boolean;
@@ -45,6 +44,10 @@ export function LoginForm({
   const t = useTranslations("Auth");
   const inviteT = useTranslations("Invite");
   const appT = useTranslations("App");
+  const [inviteTenantName, setInviteTenantName] = useState<string | undefined>();
+  const [inviteCheckState, setInviteCheckState] = useState<"idle" | "loading" | "valid" | "invalid">(() =>
+    inviteToken ? "loading" : "idle",
+  );
   const [email, setEmail] = useState(lockedEmail?.trim() ?? "");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -96,6 +99,31 @@ export function LoginForm({
   useEffect(() => {
     otpRef.current = otp;
   }, [otp]);
+
+  useEffect(() => {
+    if (!inviteToken) {
+      setInviteCheckState("idle");
+      setInviteTenantName(undefined);
+      return;
+    }
+
+    let cancelled = false;
+    setInviteCheckState("loading");
+    void (async () => {
+      const preview = await loadInvitePreview(inviteToken);
+      if (cancelled) return;
+      if (preview.valid) {
+        setInviteTenantName(preview.tenantName);
+        setInviteCheckState("valid");
+        return;
+      }
+      setInviteCheckState("invalid");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteToken]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -340,7 +368,7 @@ export function LoginForm({
 
   const emailLocked = Boolean(lockedEmail?.trim());
   const showTabSwitch = !emailLocked && tab !== "forgot" && !inviteToken;
-  const showInviteRegisterTab = Boolean(inviteToken) && !emailLocked && tab !== "forgot";
+  const showInviteRegisterTab = Boolean(inviteToken) && inviteCheckState === "valid" && !emailLocked && tab !== "forgot";
 
   function switchTab(nextTab: AuthTab) {
     setTab(nextTab);
@@ -383,11 +411,11 @@ export function LoginForm({
               : t("registerSubtitle")
             : emailLocked
               ? t("passwordStepSubtitle", {email})
-              : inviteToken
-                ? inviteTenantName
-                  ? inviteT("loginSubtitleWithTenant", {tenant: inviteTenantName})
-                  : inviteT("loginSubtitle")
-                : t("signInSubtitle");
+              : inviteToken && inviteCheckState === "valid"
+              ? inviteTenantName
+                ? inviteT("loginSubtitleWithTenant", {tenant: inviteTenantName})
+                : inviteT("loginSubtitle")
+              : t("signInSubtitle");
 
   const cardHeading =
     step === "newpw"
@@ -398,9 +426,32 @@ export function LoginForm({
           ? t("otpHeading")
           : tab === "register"
             ? t("registerHeading")
-            : inviteToken
+            : inviteToken && inviteCheckState === "valid"
               ? inviteT("title")
               : t("signInHeading");
+
+  if (inviteToken && inviteCheckState === "loading") {
+    return (
+      <div className="mx-auto w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+        <p className="text-sm text-muted-foreground">{inviteT("checking")}</p>
+      </div>
+    );
+  }
+
+  if (inviteToken && inviteCheckState === "invalid") {
+    return (
+      <main className="mx-auto w-full max-w-md space-y-4 rounded-xl border border-border bg-card p-6 text-center shadow-sm">
+        <h1 className="text-xl font-semibold tracking-tight">{inviteT("invalidTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{inviteT("invalidDescription")}</p>
+        <a
+          href={`/${locale}/login`}
+          className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          {inviteT("backToLogin")}
+        </a>
+      </main>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm sm:p-8">
@@ -419,7 +470,7 @@ export function LoginForm({
         </div>
       ) : null}
 
-      {inviteToken && step === "main" ? (
+      {inviteToken && inviteCheckState === "valid" && step === "main" ? (
         <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
           {inviteTenantName ? inviteT("joinBannerWithTenant", {tenant: inviteTenantName}) : inviteT("joinBanner")}
         </div>
