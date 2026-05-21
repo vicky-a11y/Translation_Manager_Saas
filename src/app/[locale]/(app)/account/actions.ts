@@ -45,6 +45,25 @@ export async function saveAccountProfile(formData: FormData): Promise<SaveAccoun
     return {ok: false, code: "auth"};
   }
 
+  const {error: rpcError} = await supabase.rpc("save_account_profile", {
+    p_full_name: fullName,
+    p_nickname: nickname,
+    p_gender: gender,
+    p_phone: phone,
+    p_address: address,
+    p_region: region,
+    p_timezone: timezone,
+    p_language_preference: languagePreference,
+    p_real_name: realName,
+  });
+
+  if (!rpcError) {
+    revalidatePath(`/${locale}/account`, "page");
+    revalidatePath(`/${locale}`, "layout");
+    return {ok: true};
+  }
+
+  // Fallback：DB 尚未套用 047 時，退回直接 UPDATE（可能被 RLS 擋下）
   const {error: profileError} = await supabase
     .from("profiles")
     .update({
@@ -60,6 +79,7 @@ export async function saveAccountProfile(formData: FormData): Promise<SaveAccoun
     .eq("id", user.id);
 
   if (profileError) {
+    console.error("saveAccountProfile profiles update failed:", profileError, rpcError);
     return {ok: false, code: "db"};
   }
 
@@ -73,6 +93,7 @@ export async function saveAccountProfile(formData: FormData): Promise<SaveAccoun
   );
 
   if (privateError) {
+    console.error("saveAccountProfile profile_private upsert failed:", privateError, rpcError);
     return {ok: false, code: "db"};
   }
 
