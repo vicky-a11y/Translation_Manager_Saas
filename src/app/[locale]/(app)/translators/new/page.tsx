@@ -1,7 +1,7 @@
 import {redirect} from "next/navigation";
 import {getTranslations} from "next-intl/server";
 
-import {ProjectNewForm} from "./project-new-form";
+import {TranslatorEditor} from "../translator-editor";
 import {DashboardShell} from "@/components/layout/dashboard-shell";
 import {createClient} from "@/lib/supabase/server";
 import {parsePermissions} from "@/lib/permissions/parse-permissions";
@@ -14,7 +14,7 @@ function isLocale(value: string): value is AppLocale {
   return (locales as readonly string[]).includes(value);
 }
 
-export default async function ProjectNewPage({params}: {params: Promise<{locale: string}>}) {
+export default async function TranslatorNewPage({params}: {params: Promise<{locale: string}>}) {
   const {locale: localeParam} = await params;
   const locale: AppLocale = isLocale(localeParam) ? localeParam : defaultLocale;
 
@@ -40,17 +40,12 @@ export default async function ProjectNewPage({params}: {params: Promise<{locale:
 
   const flags = parsePermissions(profile?.permissions);
   const isSuper = (profile?.role as ProfileRole | undefined) === "super_admin";
-  if (!isSuper && !flags.can_edit_projects) {
+  if (!isSuper && !flags.can_manage_vendors) {
     redirect(`/${locale}/dashboard`);
   }
 
   const workspaceTenants = await loadWorkspaceTenantOptions(supabase, user.id);
   const {data: tenant} = await supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle();
-  const {count: activeCustomerCount} = await supabase
-    .from("customer_master")
-    .select("id", {count: "exact", head: true})
-    .eq("tenant_id", tenantId)
-    .eq("is_active", true);
   const navT = await getTranslations({locale, namespace: "Navigation"});
 
   return (
@@ -73,7 +68,8 @@ export default async function ProjectNewPage({params}: {params: Promise<{locale:
         tenantSwitch: navT("tenantSwitch"),
       }}
     >
-      <ProjectNewForm locale={locale} hasCustomers={(activeCustomerCount ?? 0) > 0} />
+      <TranslatorEditor locale={locale} mode="new" />
     </DashboardShell>
   );
 }
+

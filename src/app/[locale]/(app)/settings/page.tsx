@@ -58,6 +58,7 @@ export default async function SettingsPlaceholderPage({params}: {params: Promise
         dashboard: navT("dashboard"),
         members: navT("members"),
         projects: navT("projects"),
+        translators: navT("translators"),
         customers: navT("customers"),
         settings: navT("settings"),
         finance: navT("finance"),

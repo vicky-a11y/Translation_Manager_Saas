@@ -24,9 +24,13 @@ export function MemberPermissionsDialog({open, onOpenChange, locale, targetUserI
   const t = useTranslations("Members.permissions");
   const [draft, setDraft] = useState<PermissionFlags>(initial);
   const [pending, startTransition] = useTransition();
+  const [errorText, setErrorText] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) setDraft(initial);
+    if (open) {
+      setDraft(initial);
+      setErrorText(null);
+    }
   }, [open, initial]);
 
   const toggle = (key: PermissionKey, value: boolean) => {
@@ -66,6 +70,8 @@ export function MemberPermissionsDialog({open, onOpenChange, locale, targetUserI
               const res = await saveMemberPermissions(locale, targetUserId, draft);
               if (res.ok) {
                 onOpenChange(false);
+              } else {
+                setErrorText(res.message || "save_failed");
               }
             });
           }}
@@ -73,6 +79,7 @@ export function MemberPermissionsDialog({open, onOpenChange, locale, targetUserI
           {pending ? t("saving") : t("save")}
         </Button>
       </DialogFooter>
+      {errorText ? <p className="mt-2 text-xs text-destructive">{errorText}</p> : null}
     </Dialog>
   );
 }

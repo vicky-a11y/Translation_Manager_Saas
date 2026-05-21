@@ -79,6 +79,7 @@ export default async function AccountPage({params}: {params: Promise<{locale: st
         dashboard: navT("dashboard"),
         members: navT("members"),
         projects: navT("projects"),
+        translators: navT("translators"),
         customers: navT("customers"),
         settings: navT("settings"),
         finance: navT("finance"),

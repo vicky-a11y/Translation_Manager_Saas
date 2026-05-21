@@ -66,7 +66,16 @@ export function MembersDataTable({
         cell: ({row}) => {
           const r = row.original;
           if (r.id === currentUserId) {
-            return <span className="text-xs text-muted-foreground">{t("you")}</span>;
+            return (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">{t("you")}</span>
+                {canEditMemberPermissions ? (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setDialog({open: true, row: r})}>
+                    {t("permissionSettings")}
+                  </Button>
+                ) : null}
+              </div>
+            );
           }
           return (
             <div className="flex flex-wrap items-center gap-2">

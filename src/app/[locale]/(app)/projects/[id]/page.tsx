@@ -12,6 +12,8 @@ import {loadWorkspaceTenantOptions} from "@/lib/tenant/load-workspace-tenants";
 import {getWorkspaceTenantId} from "@/lib/tenant/workspace";
 import {cn} from "@/lib/utils";
 import {type AppLocale, defaultLocale, locales} from "@/i18n/routing";
+import {ProjectFinanceEditor} from "./project-finance-editor";
+import {ProjectAssignmentsEditor} from "./project-assignments-editor";
 
 function isLocale(value: string): value is AppLocale {
   return (locales as readonly string[]).includes(value);
@@ -86,7 +88,22 @@ export default async function ProjectDetailPage({
   const [financeRes, customerRes, workspaceTenants, tenantRes] = await Promise.all([
     supabase
       .from("project_financials")
-      .select("amount, disbursement_fee, taxable_total, subtotal, tax")
+      .select(
+        [
+          "amount",
+          "disbursement_fee",
+          "taxable_total",
+          "subtotal",
+          "tax",
+          "paid_amount",
+          "remaining_amount",
+          "payment_method",
+          "remittance_bank_name",
+          "remittance_account_last5",
+          "remittance_is_counter",
+          "payment_note",
+        ].join(","),
+      )
       .eq("tenant_id", tenantId)
       .eq("project_id", projectId)
       .maybeSingle(),
@@ -100,11 +117,61 @@ export default async function ProjectDetailPage({
     supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle(),
   ]);
 
-  const finance = financeRes.data;
+  const {data: assignmentRows} = await supabase
+    .from("project_translator_assignments")
+    .select(
+      `
+      id,
+      assignee_id,
+      translator_fee,
+      translator_deadline,
+      translator_master!project_translator_assignments_assignee_fk (
+        name,
+        line_name
+      )
+    `,
+    )
+    .eq("tenant_id", tenantId)
+    .eq("project_id", projectId)
+    .order("created_at", {ascending: true});
+
+  const finance = financeRes.data as {
+    amount: number | null;
+    disbursement_fee: number | null;
+    taxable_total: number | null;
+    subtotal: number | null;
+    tax: number | null;
+    paid_amount: number | null;
+    remaining_amount: number | null;
+    payment_method: number | null;
+    remittance_bank_name: string | null;
+    remittance_account_last5: string | null;
+    remittance_is_counter: boolean | null;
+    payment_note: string | null;
+  } | null;
   const customer = customerRes.data;
   const tenant = tenantRes.data;
   const navT = await getTranslations({locale, namespace: "Navigation"});
   const t = await getTranslations({locale, namespace: "ProjectsDetail"});
+
+  const assignments = (assignmentRows ?? []).map((raw) => {
+    const row = raw as {
+      id: string;
+      assignee_id: string;
+      translator_fee: number;
+      translator_deadline: string | null;
+      translator_master?: {name?: string | null; line_name?: string | null} | Array<{name?: string | null; line_name?: string | null}> | null;
+    };
+    const tm = Array.isArray(row.translator_master) ? row.translator_master[0] : row.translator_master;
+    const display = ((tm?.line_name ?? "") as string).trim() || ((tm?.name ?? "") as string).trim() || row.assignee_id;
+    return {
+      id: row.id,
+      assigneeId: row.assignee_id,
+      translatorLabel: display,
+      translatorFee: Number(row.translator_fee ?? 0),
+      translatorDeadline: row.translator_deadline,
+    };
+  });
 
   return (
     <DashboardShell
@@ -116,6 +183,7 @@ export default async function ProjectDetailPage({
         dashboard: navT("dashboard"),
         members: navT("members"),
         projects: navT("projects"),
+        translators: navT("translators"),
         customers: navT("customers"),
         settings: navT("settings"),
         finance: navT("finance"),
@@ -168,28 +236,51 @@ export default async function ProjectDetailPage({
               <CardTitle>{t("sectionFinance")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="grid gap-3 text-sm">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("amount")}</dt>
-                  <dd className="font-medium">{formatMoney(finance?.amount, locale)}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("disbursementFee")}</dt>
-                  <dd className="font-medium">{formatMoney(finance?.disbursement_fee, locale)}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("taxableTotal")}</dt>
-                  <dd className="font-medium">{formatMoney(finance?.taxable_total, locale)}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("subtotal")}</dt>
-                  <dd className="font-medium">{formatMoney(finance?.subtotal, locale)}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("tax")}</dt>
-                  <dd className="font-medium">{formatMoney(finance?.tax, locale)}</dd>
-                </div>
-              </dl>
+              <ProjectFinanceEditor
+                locale={locale}
+                projectId={projectId}
+                initial={{
+                  amount: (finance?.amount as number | null) ?? null,
+                  disbursementFee: (finance?.disbursement_fee as number | null) ?? null,
+                  taxableTotal: (finance?.taxable_total as number | null) ?? null,
+                  subtotal: (finance?.subtotal as number | null) ?? null,
+                  tax: (finance?.tax as number | null) ?? null,
+                  paidAmount: (finance?.paid_amount as number | null) ?? null,
+                  remainingAmount: (finance?.remaining_amount as number | null) ?? null,
+                  paymentMethod: (finance?.payment_method as number | null) ?? null,
+                  remittanceBankName: (finance?.remittance_bank_name as string | null) ?? null,
+                  remittanceAccountLast5: (finance?.remittance_account_last5 as string | null) ?? null,
+                  remittanceIsCounter: (finance?.remittance_is_counter as boolean | null) ?? null,
+                  paymentNote: (finance?.payment_note as string | null) ?? null,
+                }}
+                labels={{
+                  amount: t("amount"),
+                  disbursementFee: t("disbursementFee"),
+                  taxableTotal: t("taxableTotal"),
+                  subtotal: t("subtotal"),
+                  tax: t("tax"),
+                  receivedAmount: t("receivedAmount"),
+                  unreceivedAmount: t("unreceivedAmount"),
+                  paymentMethod: t("paymentMethod"),
+                  paymentMethodUnset: t("paymentMethodUnset"),
+                  paymentMethodCash: t("paymentMethodCash"),
+                  paymentMethodTransfer: t("paymentMethodTransfer"),
+                  paymentMethodOverseasWire: t("paymentMethodOverseasWire"),
+                  paymentMethodCard: t("paymentMethodCard"),
+                  paymentMethodOther: t("paymentMethodOther"),
+                  remittanceBankName: t("remittanceBankName"),
+                  remittanceAccountLast5: t("remittanceAccountLast5"),
+                  remittanceCounter: t("remittanceCounter"),
+                  paymentNote: t("paymentNote"),
+                  edit: t("edit"),
+                  save: t("save"),
+                  saving: t("saving"),
+                  cancel: t("cancel"),
+                  saved: t("saved"),
+                  errorValidation: t("errors.validation"),
+                  errorGeneric: t("errors.database"),
+                }}
+              />
             </CardContent>
           </Card>
         </div>
@@ -237,6 +328,37 @@ export default async function ProjectDetailPage({
                 <dd className="mt-1 font-medium">{valueOrDash(customer?.address)}</dd>
               </div>
             </dl>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sectionAssignments")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProjectAssignmentsEditor
+              locale={locale}
+              projectId={projectId}
+              initial={assignments}
+              labels={{
+                heading: t("assignmentsHeading"),
+                add: t("assignmentsAdd"),
+                translator: t("assignmentsTranslator"),
+                translatorPlaceholder: t("assignmentsTranslatorPlaceholder"),
+                translatorSearching: t("assignmentsTranslatorSearching"),
+                translatorNoMatches: t("assignmentsTranslatorNoMatches"),
+                fee: t("assignmentsFee"),
+                deadline: t("assignmentsDeadline"),
+                edit: t("edit"),
+                save: t("save"),
+                saving: t("saving"),
+                cancel: t("cancel"),
+                delete: t("delete"),
+                errorValidation: t("errors.validation"),
+                errorGeneric: t("errors.database"),
+                saved: t("saved"),
+              }}
+            />
           </CardContent>
         </Card>
       </div>

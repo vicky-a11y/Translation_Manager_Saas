@@ -5,6 +5,7 @@ export const PAYMENT_METHOD = {
   BANK_TRANSFER: 2,
   ONLINE_CARD: 3,
   OTHER: 4,
+  OVERSEAS_WIRE: 5,
 } as const;
 
 export type PaymentMethod = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
@@ -136,7 +137,7 @@ export function validateFinancialInput(input: FinancialInput): FinancialValidati
     };
   }
 
-  if (paymentMethod != null && ![1, 2, 3, 4].includes(paymentMethod)) {
+  if (paymentMethod != null && ![1, 2, 3, 4, 5].includes(paymentMethod)) {
     return {
       ok: false,
       code: "PAYMENT_METHOD_INVALID",

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {usePathname} from "next/navigation";
-import {Building2, FolderKanban, LayoutDashboard, Settings2, UserRound, Users, Wallet} from "lucide-react";
+import {Building2, FolderKanban, LayoutDashboard, Languages, Settings2, UserRound, Users, Wallet} from "lucide-react";
 
 import {LogoutButton} from "@/components/auth/logout-button";
 import {usePermission} from "@/hooks/use-permission";
@@ -33,6 +33,7 @@ type NavLabels = {
   dashboard: string;
   members: string;
   projects: string;
+  translators?: string;
   customers: string;
   settings: string;
   finance: string;
@@ -66,6 +67,7 @@ export function DashboardShell({
   const membersPath = `${base}/members`;
   const financePath = `${base}/finance`;
   const projectsPath = `${base}/projects`;
+  const translatorsPath = `${base}/translators`;
   const customersPath = `${base}/customers`;
   const settingsPath = `${base}/settings`;
   const accountPath = `${base}/account`;
@@ -75,6 +77,7 @@ export function DashboardShell({
   const membersActive = pathname === membersPath || pathname.startsWith(`${membersPath}/`);
   const financeActive = pathname === financePath || pathname.startsWith(`${financePath}/`);
   const projectsActive = pathname === projectsPath || pathname.startsWith(`${projectsPath}/`);
+  const translatorsActive = pathname === translatorsPath || pathname.startsWith(`${translatorsPath}/`);
   const customersActive = pathname === customersPath || pathname.startsWith(`${customersPath}/`);
   const settingsActive = pathname === settingsPath || pathname.startsWith(`${settingsPath}/`);
   const accountActive = pathname === accountPath || pathname.startsWith(`${accountPath}/`);
@@ -155,6 +158,25 @@ export function DashboardShell({
                     </SidebarMenuButton>
                   )}
                 </SidebarMenuItem>
+                {labels.translators ? (
+                  <SidebarMenuItem>
+                    {can("can_manage_vendors") ? (
+                      <SidebarMenuButton
+                        isActive={translatorsActive}
+                        tooltip={labels.translators}
+                        render={<Link href={translatorsPath} />}
+                      >
+                        <Languages className="size-4 shrink-0" />
+                        <span className="min-w-0 flex-1 truncate">{labels.translators}</span>
+                      </SidebarMenuButton>
+                    ) : (
+                      <SidebarMenuButton disabled tooltip={labels.translators}>
+                        <Languages className="size-4 shrink-0" />
+                        <span className="min-w-0 flex-1 truncate">{labels.translators}</span>
+                      </SidebarMenuButton>
+                    )}
+                  </SidebarMenuItem>
+                ) : null}
                 <SidebarMenuItem>
                   {can("can_edit_projects") ? (
                     <SidebarMenuButton

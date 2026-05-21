@@ -12,6 +12,7 @@ import {loadWorkspaceTenantOptions} from "@/lib/tenant/load-workspace-tenants";
 import {getWorkspaceTenantId} from "@/lib/tenant/workspace";
 import {cn} from "@/lib/utils";
 import {type AppLocale, defaultLocale, locales} from "@/i18n/routing";
+import {logProjectQueryError} from "@/lib/supabase/log-project-query-error";
 
 function isLocale(value: string): value is AppLocale {
   return (locales as readonly string[]).includes(value);
@@ -26,6 +27,66 @@ function formatDateTime(value: string | null, locale: AppLocale) {
     return new Intl.DateTimeFormat(tag, {dateStyle: "medium", timeStyle: "short"}).format(new Date(value));
   } catch {
     return value;
+  }
+}
+
+function isOverdue(deadlineIso: string | null) {
+  if (!deadlineIso) return false;
+  const ms = new Date(deadlineIso).getTime();
+  if (!Number.isFinite(ms)) return false;
+  return ms < Date.now();
+}
+
+function localeToBcp47(locale: AppLocale) {
+  return locale === "zh-TW" || locale === "zh-CN"
+    ? locale
+    : locale === "ms"
+      ? "ms-MY"
+      : "en-US";
+}
+
+/** 一案多譯者：同一 assignee（業務編號）只顯示一次，以 translator_master.name 為主。 */
+function buildTranslatorsDisplayByProjectId(
+  assignRows: unknown[],
+): Map<string, Map<string, string>> {
+  const byProject = new Map<string, Map<string, string>>();
+
+  for (const raw of assignRows) {
+    const row = raw as {
+      project_id: string;
+      assignee_id: string;
+      translator_master?: {name?: string | null} | Array<{name?: string | null}> | null;
+    };
+    const tm = Array.isArray(row.translator_master) ? row.translator_master[0] : row.translator_master;
+    const label = ((tm?.name ?? "") as string).trim() || row.assignee_id;
+    let forProject = byProject.get(row.project_id);
+    if (!forProject) {
+      forProject = new Map();
+      byProject.set(row.project_id, forProject);
+    }
+    forProject.set(row.assignee_id, label);
+  }
+
+  return byProject;
+}
+
+function formatTranslatorCell(
+  byProject: Map<string, Map<string, string>>,
+  projectId: string,
+  locale: AppLocale,
+) {
+  const forProject = byProject.get(projectId);
+  if (!forProject?.size) return "—";
+
+  const sorted = [...forProject.values()].sort((a, b) =>
+    a.localeCompare(b, localeToBcp47(locale), {numeric: true}),
+  );
+
+  const tag = localeToBcp47(locale);
+  try {
+    return new Intl.ListFormat(tag, {type: "conjunction", style: "narrow"}).format(sorted);
+  } catch {
+    return sorted.join(locale === "en" ? ", " : "、");
   }
 }
 
@@ -61,15 +122,34 @@ export default async function ProjectsPage({params}: {params: Promise<{locale: s
 
   const workspaceTenants = await loadWorkspaceTenantOptions(supabase, user.id);
   const {data: tenant} = await supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle();
-  const {data: rows} = await supabase
+  const {data: rows, error: projectsErr} = await supabase
     .from("projects")
     .select("id, project_code, title, delivery_deadline, customer_master(display_name)")
     .eq("tenant_id", tenantId)
     .order("created_at", {ascending: false})
     .limit(100);
+  logProjectQueryError("projects list page", projectsErr, tenantId);
   const navT = await getTranslations({locale, namespace: "Navigation"});
   const t = await getTranslations({locale, namespace: "ProjectsPage"});
   const list = rows ?? [];
+
+  const projectIds = list.map((r) => (r as {id: string}).id);
+  let translatorsByProjectId = new Map<string, Map<string, string>>();
+  if (projectIds.length > 0) {
+    const {data: assignRows, error: assignErr} = await supabase
+      .from("project_translator_assignments")
+      .select(`
+        project_id,
+        assignee_id,
+        translator_master!project_translator_assignments_assignee_fk (
+          name
+        )
+      `)
+      .eq("tenant_id", tenantId)
+      .in("project_id", projectIds);
+    logProjectQueryError("project_translator_assignments list", assignErr, tenantId);
+    translatorsByProjectId = buildTranslatorsDisplayByProjectId(assignRows ?? []);
+  }
 
   return (
     <DashboardShell
@@ -81,6 +161,7 @@ export default async function ProjectsPage({params}: {params: Promise<{locale: s
         dashboard: navT("dashboard"),
         members: navT("members"),
         projects: navT("projects"),
+        translators: navT("translators"),
         customers: navT("customers"),
         settings: navT("settings"),
         finance: navT("finance"),
@@ -112,6 +193,7 @@ export default async function ProjectsPage({params}: {params: Promise<{locale: s
                 <TableHead>{t("colProjectCode")}</TableHead>
                 <TableHead>{t("colTitle")}</TableHead>
                 <TableHead>{t("colDeliveryDeadline")}</TableHead>
+                <TableHead>{t("colExecutingTranslators")}</TableHead>
                 <TableHead>{t("colCustomerName")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -128,6 +210,7 @@ export default async function ProjectsPage({params}: {params: Promise<{locale: s
                   ? project.customer_master[0]
                   : project.customer_master;
                 const detailHref = `/${locale}/projects/${project.id}`;
+                const overdue = isOverdue(project.delivery_deadline);
 
                 return (
                   <TableRow key={project.id}>
@@ -144,8 +227,11 @@ export default async function ProjectsPage({params}: {params: Promise<{locale: s
                         {project.title}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className={overdue ? "font-medium text-red-600" : "text-muted-foreground"}>
                       {formatDateTime(project.delivery_deadline, locale)}
+                    </TableCell>
+                    <TableCell className="max-w-[14rem] text-muted-foreground break-words sm:max-w-xs">
+                      {formatTranslatorCell(translatorsByProjectId, project.id, locale)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{customer?.display_name ?? "—"}</TableCell>
                   </TableRow>

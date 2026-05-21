@@ -131,6 +131,7 @@ export default async function MembersPage({
         dashboard: navT("dashboard"),
         members: navT("members"),
         projects: navT("projects"),
+        translators: navT("translators"),
         customers: navT("customers"),
         settings: navT("settings"),
         finance: navT("finance"),

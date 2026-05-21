@@ -58,6 +58,7 @@ export default async function CustomerNewPage({params}: {params: Promise<{locale
         dashboard: navT("dashboard"),
         members: navT("members"),
         projects: navT("projects"),
+        translators: navT("translators"),
         customers: navT("customers"),
         settings: navT("settings"),
         finance: navT("finance"),

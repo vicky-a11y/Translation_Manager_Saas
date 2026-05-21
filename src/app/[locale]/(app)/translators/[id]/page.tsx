@@ -1,7 +1,7 @@
-import {redirect} from "next/navigation";
+import {notFound, redirect} from "next/navigation";
 import {getTranslations} from "next-intl/server";
 
-import {ProjectNewForm} from "./project-new-form";
+import {TranslatorEditor} from "../translator-editor";
 import {DashboardShell} from "@/components/layout/dashboard-shell";
 import {createClient} from "@/lib/supabase/server";
 import {parsePermissions} from "@/lib/permissions/parse-permissions";
@@ -14,8 +14,12 @@ function isLocale(value: string): value is AppLocale {
   return (locales as readonly string[]).includes(value);
 }
 
-export default async function ProjectNewPage({params}: {params: Promise<{locale: string}>}) {
-  const {locale: localeParam} = await params;
+export default async function TranslatorDetailPage({
+  params,
+}: {
+  params: Promise<{locale: string; id: string}>;
+}) {
+  const {locale: localeParam, id} = await params;
   const locale: AppLocale = isLocale(localeParam) ? localeParam : defaultLocale;
 
   const supabase = await createClient();
@@ -40,17 +44,57 @@ export default async function ProjectNewPage({params}: {params: Promise<{locale:
 
   const flags = parsePermissions(profile?.permissions);
   const isSuper = (profile?.role as ProfileRole | undefined) === "super_admin";
-  if (!isSuper && !flags.can_edit_projects) {
+  if (!isSuper && !flags.can_manage_vendors) {
     redirect(`/${locale}/dashboard`);
+  }
+
+  const {data: translator} = await supabase
+    .from("translator_master")
+    .select(
+      [
+        "id",
+        "translator_id",
+        "name",
+        "line_name",
+        "email",
+        "phone",
+        "phone_office",
+        "phone_mobile",
+        "nationality",
+        "gender",
+        "id_number",
+        "birth_date",
+        "marital_status",
+        "emergency_phone",
+        "address",
+        "household_address",
+        "mailing_address",
+        "education_school_name",
+        "education_major",
+        "education_degree",
+        "native_lang",
+        "language_skills",
+        "service_tags",
+        "bank_name",
+        "bank_code",
+        "bank_branch",
+        "bank_account",
+        "bank_account_name",
+        "status",
+        "created_at",
+        "remark",
+      ].join(","),
+    )
+    .eq("tenant_id", tenantId)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!translator) {
+    notFound();
   }
 
   const workspaceTenants = await loadWorkspaceTenantOptions(supabase, user.id);
   const {data: tenant} = await supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle();
-  const {count: activeCustomerCount} = await supabase
-    .from("customer_master")
-    .select("id", {count: "exact", head: true})
-    .eq("tenant_id", tenantId)
-    .eq("is_active", true);
   const navT = await getTranslations({locale, namespace: "Navigation"});
 
   return (
@@ -73,7 +117,8 @@ export default async function ProjectNewPage({params}: {params: Promise<{locale:
         tenantSwitch: navT("tenantSwitch"),
       }}
     >
-      <ProjectNewForm locale={locale} hasCustomers={(activeCustomerCount ?? 0) > 0} />
+      <TranslatorEditor locale={locale} mode="edit" initial={translator as unknown as Record<string, unknown>} />
     </DashboardShell>
   );
 }
+

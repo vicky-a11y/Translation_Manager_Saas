@@ -15,10 +15,11 @@ export function usePermission() {
 
   const can = useCallback(
     (key: keyof typeof ctx.permissions) => {
-      if (ctx.isSuperAdmin) return true;
+      // 規則：super_admin 與 workspace admin（owner/admin）視為全開。
+      if (ctx.isSuperAdmin || ctx.isWorkspaceAdmin) return true;
       return Boolean(ctx.permissions[key]);
     },
-    [ctx.isSuperAdmin, ctx.permissions],
+    [ctx.isSuperAdmin, ctx.isWorkspaceAdmin, ctx.permissions],
   );
 
   return {

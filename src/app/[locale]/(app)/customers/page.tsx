@@ -78,6 +78,7 @@ export default async function CustomersIndexPage({params}: {params: Promise<{loc
         dashboard: navT("dashboard"),
         members: navT("members"),
         projects: navT("projects"),
+        translators: navT("translators"),
         customers: navT("customers"),
         settings: navT("settings"),
         finance: navT("finance"),
