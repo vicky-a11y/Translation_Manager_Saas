@@ -118,8 +118,11 @@
     "errorFlag": "密碼已寫入驗證服務，但無法更新狀態紀錄，請聯絡管理員。"
   },
   "Welcome": {
-    "title": "歡迎",
-    "subtitle": "您尚未加入任何公司或工作區。您可以建立新公司，或等待管理員邀請後再登入使用。",
+    "title": "平台大廳",
+    "subtitle": "您尚未加入任何公司或工作區。請在此管理個人資料；收到管理員邀請後即可進入工作區。",
+    "lobbyHint": "您無須立即建立公司。若尚無邀請，可先完善個人資料，或等待受邀加入既有團隊。",
+    "optionalNextHeading": "自行建立工作區（選用）",
+    "optionalNextHint": "若您要創立自己的翻譯公司或組織，可選擇建立新公司並完成網域驗證。",
     "readyForWorkspace": "你已可進入工作區。",
     "enterWorkspace": "進入工作區",
     "profileHeading": "基本資料",

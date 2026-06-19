@@ -59,6 +59,7 @@ export async function saveAccountProfile(formData: FormData): Promise<SaveAccoun
 
   if (!rpcError) {
     revalidatePath(`/${locale}/account`, "page");
+    revalidatePath(`/${locale}/welcome`, "page");
     revalidatePath(`/${locale}`, "layout");
     return {ok: true};
   }
@@ -98,6 +99,7 @@ export async function saveAccountProfile(formData: FormData): Promise<SaveAccoun
   }
 
   revalidatePath(`/${locale}/account`, "page");
+  revalidatePath(`/${locale}/welcome`, "page");
   revalidatePath(`/${locale}`, "layout");
   return {ok: true};
 }
@@ -122,6 +124,7 @@ export async function markPasswordSet(locale: string): Promise<MarkPasswordSetRe
 
   if (!rpcError) {
     revalidatePath(`/${localeTrim}/account`, "page");
+    revalidatePath(`/${localeTrim}/welcome`, "page");
     return {ok: true};
   }
 
@@ -138,5 +141,6 @@ export async function markPasswordSet(locale: string): Promise<MarkPasswordSetRe
   }
 
   revalidatePath(`/${localeTrim}/account`, "page");
+  revalidatePath(`/${localeTrim}/welcome`, "page");
   return {ok: true};
 }

@@ -118,8 +118,11 @@
     "errorFlag": "Kata laluan disimpan tetapi status gagal dikemas kini."
   },
   "Welcome": {
-    "title": "Selamat datang",
-    "subtitle": "Anda belum menyertai sebarang syarikat atau ruang kerja. Cipta syarikat baharu, atau tunggu jemputan daripada pentadbir.",
+    "title": "Lobi platform",
+    "subtitle": "Anda belum menyertai sebarang syarikat atau ruang kerja. Urus profil anda di sini; selepas menerima jemputan, anda boleh masuk ruang kerja.",
+    "lobbyHint": "Anda tidak perlu mencipta syarikat dengan segera. Kemas kini profil atau tunggu jemputan untuk menyertai pasukan sedia ada.",
+    "optionalNextHeading": "Cipta ruang kerja sendiri (pilihan)",
+    "optionalNextHint": "Jika anda mahu memulakan syarikat atau organisasi terjemahan sendiri, anda boleh mencipta penyewa baharu dan melengkapkan pengesahan domain.",
     "readyForWorkspace": "Ruang kerja anda sedia.",
     "enterWorkspace": "Pergi ke ruang kerja",
     "profileHeading": "Profil",

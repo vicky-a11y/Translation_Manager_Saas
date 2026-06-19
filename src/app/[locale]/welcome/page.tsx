@@ -37,6 +37,20 @@ export default async function WelcomePage({params}: {params: Promise<{locale: st
 
   const navT = await getTranslations({locale, namespace: "Navigation"});
 
+  const {data: profile} = await supabase
+    .from("profiles")
+    .select(
+      "full_name, nickname, gender, phone, address, region, timezone, language_preference, password_set_at",
+    )
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const {data: priv} = await supabase
+    .from("profile_private")
+    .select("real_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   const {data: invitationRows} = await supabase.from("invitations").select("token, tenants(name)");
 
   const pendingInvites = (invitationRows ?? []).map((row) => {
@@ -56,7 +70,22 @@ export default async function WelcomePage({params}: {params: Promise<{locale: st
       <PublicLocaleHeader locale={locale} showLogout logoutLabel={navT("logout")} />
       <div className="relative flex flex-1 flex-col px-4 py-10">
         <PendingInvitationModal locale={locale} invites={pendingInvites} />
-        <WelcomeClient locale={locale} />
+        <WelcomeClient
+          locale={locale}
+          userEmail={user.email ?? ""}
+          profile={{
+            full_name: profile?.full_name ?? null,
+            nickname: profile?.nickname ?? null,
+            gender: profile?.gender ?? null,
+            phone: profile?.phone ?? null,
+            address: profile?.address ?? null,
+            region: profile?.region ?? null,
+            timezone: profile?.timezone ?? null,
+            language_preference: profile?.language_preference ?? "zh-TW",
+            real_name: priv?.real_name ?? null,
+            password_set_at: profile?.password_set_at ?? null,
+          }}
+        />
       </div>
     </div>
   );

@@ -118,8 +118,11 @@
     "errorFlag": "Password was saved in auth, but status could not be updated. Contact support."
   },
   "Welcome": {
-    "title": "Welcome",
-    "subtitle": "You are not in any company or workspace yet. Create a new company, or wait for an invitation from your administrator.",
+    "title": "Platform lobby",
+    "subtitle": "You are not in any company or workspace yet. Manage your profile here; once you accept an invitation, you can enter a workspace.",
+    "lobbyHint": "You do not need to create a company right away. Update your profile or wait for an invitation to join an existing team.",
+    "optionalNextHeading": "Create your own workspace (optional)",
+    "optionalNextHint": "If you want to start your own translation company or organization, you can create a new tenant and complete domain verification.",
     "readyForWorkspace": "Your workspace is ready.",
     "enterWorkspace": "Go to workspace",
     "profileHeading": "Profile",
