@@ -9,6 +9,7 @@ import {markPasswordSet} from "@/app/[locale]/(app)/account/actions";
 import {getPostLoginTargetAction} from "@/app/[locale]/login/actions";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {PasswordInput} from "@/components/ui/password-input";
 import {InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot} from "@/components/ui/input-otp";
 import {Label} from "@/components/ui/label";
 import {createClient} from "@/lib/supabase/client";
@@ -558,9 +559,8 @@ export function LoginForm({
                 {t("forgotPasswordLink")}
               </button>
             </div>
-            <Input
+            <PasswordInput
               id="login-password"
-              type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -711,9 +711,8 @@ export function LoginForm({
         <form className="space-y-4" onSubmit={submitForgotNewPassword}>
           <div className="space-y-2">
             <Label htmlFor="forgot-new-password">{t("forgotNewPassword")}</Label>
-            <Input
+            <PasswordInput
               id="forgot-new-password"
-              type="password"
               autoComplete="new-password"
               required
               minLength={8}
@@ -723,9 +722,8 @@ export function LoginForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="forgot-new-password2">{t("forgotConfirmPassword")}</Label>
-            <Input
+            <PasswordInput
               id="forgot-new-password2"
-              type="password"
               autoComplete="new-password"
               required
               minLength={8}

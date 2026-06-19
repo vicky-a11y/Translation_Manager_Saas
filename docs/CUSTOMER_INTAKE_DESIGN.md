@@ -1,7 +1,7 @@
 # 客戶自助建檔與多元管道收件系統 — 開發手冊
 
-> 狀態：**V1（全局大門口模式）已實作**（migration `048`、公開頁 `/intake/[token]`、後台 `/customers/intake`、建案預填）。本手冊仍為設計依據；**§8 待討論項目**尚未實作。
-> 關聯文件：流程圖見 `docs/PROJECT_CUSTOMER_FLOW.md`；已完成脈絡見 `MEMORIES.md`；RLS 原則見 `docs/RLS_DESIGN_AND_MITIGATIONS.md`。
+> 狀態：**V1（全局大門口模式）已實作**（migration `048` **已於 Supabase 套用**、公開頁 `/intake/[token]`、後台 `/customers/intake`、建案預填）。本手冊仍為設計依據；**§8 待討論項目**尚未實作。
+> 關聯文件：流程圖見 `docs/PROJECT_CUSTOMER_FLOW.md`；已完成脈絡見 `MEMORIES.md`；產品總覽見 **`docs/PRODUCT_HANDBOOK.md`**；RLS 原則見 `docs/RLS_DESIGN_AND_MITIGATIONS.md`。
 
 ## 0. 核心哲學
 

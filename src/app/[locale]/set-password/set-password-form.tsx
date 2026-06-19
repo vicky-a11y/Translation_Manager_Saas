@@ -6,6 +6,7 @@ import {useTranslations} from "next-intl";
 import {markPasswordSet} from "@/app/[locale]/(app)/account/actions";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {PasswordInput} from "@/components/ui/password-input";
 import {Label} from "@/components/ui/label";
 import {createClient} from "@/lib/supabase/client";
 import type {AppLocale} from "@/i18n/routing";
@@ -57,11 +58,11 @@ export function SetPasswordForm({locale}: {locale: AppLocale}) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">{t("newPassword")}</Label>
-        <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} />
+        <PasswordInput id="password" name="password" autoComplete="new-password" required minLength={8} />
       </div>
       <div className="space-y-2">
         <Label htmlFor="password2">{t("confirmPassword")}</Label>
-        <Input id="password2" name="password2" type="password" autoComplete="new-password" required minLength={8} />
+        <PasswordInput id="password2" name="password2" autoComplete="new-password" required minLength={8} />
       </div>
       <Button type="submit" className="w-full" size="lg" disabled={pending}>
         {pending ? t("saving") : t("submit")}

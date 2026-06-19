@@ -1,9 +1,12 @@
 "use server";
 
 import {createClient} from "@/lib/supabase/server";
-import {getPostLoginHref} from "@/lib/tenant/post-auth";
+import {resolvePostLoginHref} from "@/lib/tenant/post-auth";
 
-/** 登入成功後（客戶端）呼叫，以取得應導向的路徑。 */
+/**
+ * 登入成功後（客戶端）呼叫，依 tenant_memberships 數量決定導向：
+ * 0 筆 → /welcome；≥ 1 筆 → App 主殼 /{locale}。
+ */
 export async function getPostLoginTargetAction(locale: string): Promise<string> {
   const trimmed = locale.trim();
   if (!trimmed) return "/";
@@ -16,5 +19,5 @@ export async function getPostLoginTargetAction(locale: string): Promise<string> 
     return `/${trimmed}/login`;
   }
 
-  return getPostLoginHref(supabase, trimmed, user.id, user.email);
+  return resolvePostLoginHref(supabase, trimmed, user.id, user.email);
 }

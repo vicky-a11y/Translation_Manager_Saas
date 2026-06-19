@@ -38,7 +38,6 @@ export async function switchActiveTenant(formData: FormData): Promise<void> {
     .from("profiles")
     .update({
       active_tenant_id: nextTenantId,
-      tenant_id: nextTenantId,
     })
     .eq("id", user.id);
 

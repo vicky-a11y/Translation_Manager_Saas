@@ -8,6 +8,7 @@ import {markPasswordSet, saveAccountProfile} from "@/app/[locale]/(app)/account/
 import {ACCOUNT_TIMEZONE_OPTIONS} from "@/app/[locale]/(app)/account/timezones";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {PasswordInput} from "@/components/ui/password-input";
 import {Label} from "@/components/ui/label";
 import {createClient} from "@/lib/supabase/client";
 import type {AppLocale} from "@/i18n/routing";
@@ -270,15 +271,15 @@ export function AccountClient({locale, userEmail, initial}: AccountClientProps) 
           </div>
           <div className="space-y-2">
             <Label htmlFor="pwd_old">{t("oldPassword")}</Label>
-            <Input id="pwd_old" name="pwd_old" type="password" autoComplete="current-password" required />
+            <PasswordInput id="pwd_old" name="pwd_old" autoComplete="current-password" required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="pwd_new">{t("newPassword")}</Label>
-            <Input id="pwd_new" name="pwd_new" type="password" autoComplete="new-password" />
+            <PasswordInput id="pwd_new" name="pwd_new" autoComplete="new-password" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="pwd_new2">{t("newPasswordConfirm")}</Label>
-            <Input id="pwd_new2" name="pwd_new2" type="password" autoComplete="new-password" />
+            <PasswordInput id="pwd_new2" name="pwd_new2" autoComplete="new-password" />
           </div>
           <Button type="submit" variant="secondary" disabled={secPending}>
             {secPending ? t("applying") : t("applyPassword")}
@@ -298,7 +299,7 @@ export function AccountClient({locale, userEmail, initial}: AccountClientProps) 
           </div>
           <div className="space-y-2">
             <Label htmlFor="em_password">{t("passwordForEmailChange")}</Label>
-            <Input id="em_password" name="em_password" type="password" autoComplete="current-password" required />
+            <PasswordInput id="em_password" name="em_password" autoComplete="current-password" required />
           </div>
           <Button type="submit" variant="secondary" disabled={secPending}>
             {secPending ? t("applying") : t("applyEmail")}

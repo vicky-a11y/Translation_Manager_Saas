@@ -119,7 +119,7 @@
   },
   "Welcome": {
     "title": "欢迎",
-    "subtitle": "请先更新基本资料，然后选择创建新公司（租户），或登记为供应商／外部译者。",
+    "subtitle": "您尚未加入任何公司或工作区。您可以创建新公司，或等待管理员邀请后再登录使用。",
     "readyForWorkspace": "你可以进入工作区了。",
     "enterWorkspace": "进入工作区",
     "profileHeading": "基本资料",
@@ -131,7 +131,7 @@
     "profileSaved": "已保存。",
     "errorGeneric": "发生错误，请稍后再试。",
     "identityHeading": "下一步",
-    "identityHint": "请选择接下来要创建自己的公司租户，或以供应商／外部译者身份登记。",
+    "identityHint": "若已有邀请，请先完成邀请流程；否则请创建新公司（工作区）以开始使用。",
     "vendorHeading": "成为供应商／外部译者",
     "vendorDescription": "若你代表其他翻译公司、外部译司或自由译者，可在此登记（后续权限由管理员配置）。",
     "vendorCta": "我代表供应商／外部译司，登记身份",
@@ -864,7 +864,8 @@
     "vendorList": "供应商名单",
     "addCase": "新增案件",
     "logout": "登出",
-    "welcomeToSystem": "欢迎使用本系统"
+    "welcomeToSystem": "欢迎使用本系统",
+    "showPassword": "显示明码"
   }
 }
 

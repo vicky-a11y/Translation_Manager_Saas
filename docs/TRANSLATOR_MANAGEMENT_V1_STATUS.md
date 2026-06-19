@@ -13,6 +13,7 @@
 - `030_project_translator_assignment_and_settlement.sql`
 - `031_project_multi_translator_assignments.sql`
 - `032_project_shipping_costs_and_margin_views.sql`
+- **`049_finance_translator_monthly_settlement_view.sql`**（譯者月結對帳 UI 用）
 
 ### 1.2 已建立資料表
 
@@ -45,6 +46,8 @@
   - 本月尚未接案的新進譯者清單
 - `public.v_finance_translator_monthly_overview`
   - 待結算總稿費、已回稿未結清案件數
+- `public.v_finance_translator_monthly_settlement`（**049**）
+  - 依租戶／月份／譯者彙總待撥款佇列：件數、待撥款、已撥款金額
 - `public.v_project_cost_summary`
   - 每案成本摘要，含：
     - `project_revenue`
@@ -82,6 +85,12 @@
 - 已支援一案多筆郵寄成本
 - 已支援寄件日期、物流單號、金額
 - 已支援每案寄件次數與郵寄總成本彙總
+
+### 2.5 財務 UI（譯者月結）
+
+- **月度營收總覽** `/finance`：案件財務欄位彙總（已實作）
+- **譯者月結對帳** `/finance/vendor-settlement`：讀取 `v_finance_translator_monthly_settlement`；年月篩選、譯者篩選、CSV 匯出（已實作）
+- **待建**：從月結頁一鍵批次標記「已撥款」、與銀行匯款紀錄對帳
 
 ---
 
@@ -122,7 +131,7 @@
 
 ## 4. 上線前檢查建議
 
-- 確認 migration 已依序執行到 `032`
+- 確認 migration 已依序執行到 **049**（月結頁需要 049 view）
 - 以測試資料驗證：
   - 同案多譯者 assignment 成本彙總
   - assignment 狀態 3/4 對待撥款同步

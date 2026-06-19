@@ -4,7 +4,7 @@ import {getTranslations} from "next-intl/server";
 import {PendingInvitationModal} from "@/components/invitations/pending-invitation-modal";
 import {PublicLocaleHeader} from "@/components/layout/public-locale-header";
 import {createClient} from "@/lib/supabase/server";
-import {getTenantAppAccessState, userHasPasswordConfigured} from "@/lib/tenant/post-auth";
+import {countActiveTenantMemberships, userHasPasswordConfigured} from "@/lib/tenant/post-auth";
 import {type AppLocale, defaultLocale, locales} from "@/i18n/routing";
 
 import {WelcomeClient} from "./welcome-client";
@@ -30,28 +30,12 @@ export default async function WelcomePage({params}: {params: Promise<{locale: st
     redirect(`/${locale}/set-password`);
   }
 
-  const accessState = await getTenantAppAccessState(supabase, user.id, user.email);
-  const canApp = accessState.ok;
-
-  if (accessState.ok) {
-    redirect(`/${locale}/dashboard`);
+  const membershipCount = await countActiveTenantMemberships(supabase, user.id);
+  if (membershipCount >= 1) {
+    redirect(`/${locale}`);
   }
 
-  console.warn("Welcome access blocked:", {
-    userId: user.id,
-    email: user.email,
-    reason: accessState.reason,
-    workspaceId: accessState.workspaceId,
-    details: accessState.details,
-  });
-
   const navT = await getTranslations({locale, namespace: "Navigation"});
-
-  const {data: profile} = await supabase
-    .from("profiles")
-    .select("full_name, language_preference")
-    .eq("id", user.id)
-    .maybeSingle();
 
   const {data: invitationRows} = await supabase.from("invitations").select("token, tenants(name)");
 
@@ -72,12 +56,7 @@ export default async function WelcomePage({params}: {params: Promise<{locale: st
       <PublicLocaleHeader locale={locale} showLogout logoutLabel={navT("logout")} />
       <div className="relative flex flex-1 flex-col px-4 py-10">
         <PendingInvitationModal locale={locale} invites={pendingInvites} />
-        <WelcomeClient
-          locale={locale}
-          canAccessApp={canApp}
-          initialFullName={profile?.full_name ?? ""}
-          initialLanguage={profile?.language_preference ?? "zh-TW"}
-        />
+        <WelcomeClient locale={locale} />
       </div>
     </div>
   );

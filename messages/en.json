@@ -119,7 +119,7 @@
   },
   "Welcome": {
     "title": "Welcome",
-    "subtitle": "Update your profile, then choose whether to create a new company tenant or register as a vendor / external translator.",
+    "subtitle": "You are not in any company or workspace yet. Create a new company, or wait for an invitation from your administrator.",
     "readyForWorkspace": "Your workspace is ready.",
     "enterWorkspace": "Go to workspace",
     "profileHeading": "Profile",
@@ -131,7 +131,7 @@
     "profileSaved": "Saved.",
     "errorGeneric": "Something went wrong. Please try again.",
     "identityHeading": "Next steps",
-    "identityHint": "Choose whether to create your own company tenant or register as a vendor / external translator.",
+    "identityHint": "If you already have an invitation, complete that flow first. Otherwise, create a new company (workspace) to get started.",
     "vendorHeading": "Become a vendor / external translator",
     "vendorDescription": "If you represent another translation company, external agency, or freelance translator, register here (permissions are managed separately).",
     "vendorCta": "I represent a vendor / external agency",
@@ -858,7 +858,8 @@
     "vendorList": "Vendor directory",
     "addCase": "New case",
     "logout": "Log out",
-    "welcomeToSystem": "Welcome to the system."
+    "welcomeToSystem": "Welcome to the system.",
+    "showPassword": "Show password"
   }
 }
 

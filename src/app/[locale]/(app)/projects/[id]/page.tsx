@@ -108,12 +108,14 @@ export default async function ProjectDetailPage({
       .eq("tenant_id", tenantId)
       .eq("project_id", projectId)
       .maybeSingle(),
-    supabase
-      .from("customer_master")
-      .select("cid, display_name, contact_person, email, phone_mobile, phone_office, im_platform, im_id, address")
-      .eq("tenant_id", tenantId)
-      .eq("id", project.customer_id)
-      .maybeSingle(),
+    project.customer_id
+      ? supabase
+          .from("customer_master")
+          .select("cid, display_name, contact_person, email, phone_mobile, phone_office, im_platform, im_id, address")
+          .eq("tenant_id", tenantId)
+          .eq("id", project.customer_id)
+          .maybeSingle()
+      : Promise.resolve({data: null, error: null}),
     loadWorkspaceTenantOptions(supabase, user.id),
     supabase.from("tenants").select("name").eq("id", tenantId).maybeSingle(),
   ]);
@@ -238,7 +240,7 @@ export default async function ProjectDetailPage({
                   createdAt: project.created_at,
                   deliveryDeadline: project.delivery_deadline,
                   notes: project.notes,
-                  customerId: project.customer_id,
+                  customerId: project.customer_id ?? "",
                   customerLabel,
                 }}
                 labels={{

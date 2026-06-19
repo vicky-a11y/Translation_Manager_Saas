@@ -7,6 +7,7 @@
 - 根路徑自動 **redirect** 至 `/[locale]/dashboard`。
 - 側欄支援 `/[locale]` 前綴路由，並正確反映 **選中狀態**。
 - 頂欄 **Tenant Switcher**：多租戶使用者可切換 `active_tenant_id` 工作區。
+- **側欄互動（2026-06）**：有權限項目 hover 時圓角底色包住文字；無權限項目以淺灰顯示且不可點選，但**仍顯示於選單**（成員、財務等不再隱藏）。
 
 ## 多語系 (i18n)
 
@@ -17,6 +18,8 @@
 - 使用 **Shadcn Card** 呈現三類 **互斥** 統計：**進行中**、**待交稿**、**已結案**。
 - 已定義對應的 **狀態過濾邏輯**（與案件狀態欄位一致）。
 - 儀表板 **projects** 統計查詢已收斂至 **`createProjectsRepository()`**（`scoped()` 自動帶入目前工作區 `tenant_id`）。
+- **最近案件表**（2026-06）：顯示 `project_code`、標題、交件截止日期、狀態；逾期標紅；可連結案件明細（`listRecentSummary`）。
+- **歡迎語**：優先顯示 `profiles.full_name`，否則 `nickname`。
 
 ## 資料安全 (Security)
 
@@ -30,6 +33,8 @@
 - **資料表維護原則**：財務需求優先擴充既有 **`project_financials`**（欄位/約束/函式/View），避免另建平行主表，確保既有關聯與 RLS 不被破壞。
 - **財務異動稽核**：`project_financials` 已加上欄位級 audit trigger（寫入 `system_audit_logs`）；並提供 `GET /api/finance/audit` 查詢端點與 repository。規格見 `docs/FINANCE_AUDIT_SPEC.md`。
 - **密碼狀態標記（`password_set_at`）用白名單 RPC，而非放寬 RLS**：`profiles.password_set_at` 的更新由 **`mark_password_set()`**（遷移 **`033_mark_password_set_rpc.sql`**）處理。函式為 **SECURITY DEFINER**、只改 `auth.uid()` 自己那一列、且只動 `password_set_at` 單一欄位，並以 `grant execute ... to authenticated` 限制呼叫者。這可讓**新註冊尚未完成 onboarding**（`active_tenant_id` 尚未與 `tenant_memberships` 對齊）的使用者在 `set-password` 頁面順利完成密碼設定，同時保留 **`profiles_update_own`**（`009_onboarding_bootstrap_and_profiles_rls.sql`）原有的嚴格 `with check`。Server action `markPasswordSet`（`src/app/[locale]/(app)/account/actions.ts`）優先走 RPC，並保留直接 UPDATE 的 fallback 與詳細錯誤訊息以便排查。原則：**RLS 保持嚴格；需繞 RLS 的小面向動作以白名單 RPC 封裝**，勿整片放寬 policy。
+- **帳戶基本資料儲存**：遷移 **`047_save_account_profile_rpc.sql`** 提供 **`save_account_profile`** RPC，繞過 `profiles_update_own` 過嚴 `WITH CHECK`（影響 owner 與新邀請成員）；`account/actions.ts` 優先呼叫 RPC。
+- **邀請流程（045–046）**：登入頁 `?invite=` 驗證 token；`accept_invitation` 最小權限；重寄邀請刷新 token 與 `expires_at`（14 天）。
 
 ## 資料庫維運（Migrations）
 
@@ -40,12 +45,12 @@
 
 ## 權限 UI 與前端
 
-- **`usePermission()`**（`src/hooks/use-permission.ts`）讀取 **`AppPermissionProvider`**（`(app)/layout` 注入）：側欄依開關隱藏 **財務**、停用或啟用 **案件／設定** 連結；**成員** 選單在 **`can_manage_translators` 或 workspace admin** 時顯示。
+- **`usePermission()`**（`src/hooks/use-permission.ts`）讀取 **`AppPermissionProvider`**（`(app)/layout` 注入）：側欄依開關顯示**可點選或淺灰停用**之選單項；**成員** 在 **`can_manage_vendors` 或 workspace admin** 時可點選。
 - **成員頁**：**TanStack Table** 資料表 + **Dialog + Switch** 調整 **`permissions`**（儲存呼叫 RPC）；**`profiles` Realtime** 由遷移 **`016_enable_realtime_profiles.sql`** 加入 **`supabase_realtime`** publication 並設 **`REPLICA IDENTITY FULL`**，搭配 **`AppPermissionProvider`** 訂閱與 **`router.refresh()`**，多分頁權限較不易不同步。
 
 ## UI 最佳化
 
-- 案件識別在介面上以 **# 開頭的 8 碼案號** 呈現（由 UUID 簡化），提升可讀性。
+- 案件編號以 **`project_code`** 顯示（無則 fallback UUID）；列表與儀表板已對齊。
 
 ## 案件管理 (Projects)
 
@@ -80,3 +85,10 @@
 - **公開頁** `/[locale]/intake/[token]`：客戶填表、兩階段預覽、送出暫存。
 - **後台收件匣** `/[locale]/(app)/customers/intake`：連結管理、pending 列表、核准轉正客戶、刪除暫存、預填跳轉建案。
 - **設計手冊**（含待實作項目）：`docs/CUSTOMER_INTAKE_DESIGN.md`。
+
+## 財務模組 (Finance)
+
+- **月度營收總覽** `/{locale}/finance`：依案件 `created_at` 年月篩選；表格含已收／未收／規費／小計／稅額／含稅總額與合計列；未收 > 0 標紅。需 **`can_view_finance`**。
+- **譯者月結對帳** `/{locale}/finance/vendor-settlement`：讀取 view **`v_finance_translator_monthly_settlement`**（migration **049**）；依月份與譯者篩選；支援 CSV 匯出（`VendorSettlementToolbar`）。
+- **共用元件**：`YearMonthFilter`（年月查詢參數）。
+- **產品手冊總覽**：`docs/PRODUCT_HANDBOOK.md`。

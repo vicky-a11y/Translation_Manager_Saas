@@ -108,7 +108,32 @@ export async function canAccessTenantAppShell(
   return state.ok;
 }
 
-export async function getPostLoginHref(
+/** 有效 tenant_memberships 筆數（is_active = true）。 */
+export async function countActiveTenantMemberships(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<number> {
+  const {count, error} = await supabase
+    .from("tenant_memberships")
+    .select("*", {count: "exact", head: true})
+    .eq("user_id", userId)
+    .eq("is_active", true);
+
+  if (error) {
+    console.warn("countActiveTenantMemberships failed:", error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+/**
+ * 登入後導向路徑（052 後以 tenant_memberships 為準，不再依 profiles.tenant_id）。
+ * - 未設定密碼 → set-password
+ * - 有效 membership = 0 → welcome（全新用戶或尚未加入工作區）
+ * - 有效 membership ≥ 1 → App 主殼（/{locale}）
+ */
+export async function resolvePostLoginHref(
   supabase: SupabaseClient,
   locale: string,
   userId: string,
@@ -117,7 +142,20 @@ export async function getPostLoginHref(
   if (!(await userHasPasswordConfigured(supabase, userId, userEmail))) {
     return `/${locale}/set-password`;
   }
-  const ok = await canAccessTenantAppShell(supabase, userId, userEmail);
-  if (ok) return `/${locale}`;
+
+  const membershipCount = await countActiveTenantMemberships(supabase, userId);
+  if (membershipCount >= 1) {
+    return `/${locale}`;
+  }
+
   return `/${locale}/welcome`;
+}
+
+export async function getPostLoginHref(
+  supabase: SupabaseClient,
+  locale: string,
+  userId: string,
+  userEmail?: string | null,
+): Promise<string> {
+  return resolvePostLoginHref(supabase, locale, userId, userEmail);
 }

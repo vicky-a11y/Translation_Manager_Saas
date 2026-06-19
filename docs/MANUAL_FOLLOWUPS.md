@@ -2,6 +2,9 @@
 
 本檔記錄與「註冊流程、歡迎頁、vendor 遷移」相關、**無法僅靠程式庫自動完成**或**建議後續補強**的項目，方便之後查閱。
 
+**產品總覽手冊（已實作／規則／流程／待辦）：**  
+→ **`docs/PRODUCT_HANDBOOK.md`**
+
 **檔案位置（本 repo）：**  
 `docs/MANUAL_FOLLOWUPS.md`  
 （完整路徑：`tms_saas/tms/docs/MANUAL_FOLLOWUPS.md`）
@@ -17,6 +20,22 @@
   4. **`013_vendor_permissions_after_profiles_flags.sql`**（**必須在 008 之後**；更新 `can_manage_vendors` RPC／`auth_profile_permission`；若缺 `permissions` 欄位會 **直接報錯** 並中止）
 - 新 clone 建議依 `migrations/` 目錄**檔名數字順序**跑完整遷移。
 - **`016_enable_realtime_profiles.sql`**：將 **`public.profiles`** 納入 **`supabase_realtime`** publication，並設 **`REPLICA IDENTITY FULL`**，讓前端 **`AppPermissionProvider`** 對 `profiles` 的 **filtered `postgres_changes`**（例如 `id=eq.<user>`）能收到 **UPDATE** 事件，多分頁權限較不易舊資料。
+- **近期必確認（048–049）**：
+  - **`048_customer_intake_flow.sql`** — 客戶 Intake 表、RPC、`projects.notes`（**已於 Supabase 套用**）。
+  - **`049_finance_translator_monthly_settlement_view.sql`** — 譯者月結 view；**`/finance/vendor-settlement` 依賴此 view**，未套用則月結頁無資料。
+
+### 1.2 側欄選單權限（前端規則）
+
+| 選單 | 可點選條件 | 無權限時 UI |
+|------|------------|-------------|
+| 儀表板、帳戶 | 已登入 | — |
+| 成員 | `super_admin`／workspace admin／`can_manage_vendors` | 淺灰、disabled |
+| 財務 | `super_admin`／`can_view_finance` | 淺灰、disabled |
+| 案件、客戶 | `super_admin`／`can_edit_projects` | 淺灰、disabled |
+| 譯者 | `super_admin`／`can_manage_vendors` | 淺灰、disabled |
+| 設定 | `super_admin`／`can_access_settings` | 淺灰、disabled |
+
+實作：`src/components/layout/dashboard-shell.tsx` → `DashboardNavItem`。
 
 ### 1.1 若執行 012 出現 `column p.permissions does not exist`（42703）
 
@@ -76,6 +95,9 @@
 | 遷移 012／013  | `supabase/migrations/012_vendor_welcome_invite_refactor.sql`、`013_vendor_permissions_after_profiles_flags.sql` |
 | 遷移 033／047  | 帳戶密碼／基本資料 RPC（繞過 `profiles_update_own` 過嚴 CHECK） |
 | 遷移 042–046   | owner 權限、邀請登入、重寄刷新 token |
+| 遷移 048–049   | 客戶 Intake、譯者月結 view |
+| 財務總覽／月結 | `src/app/[locale]/(app)/finance/`、`vendor-settlement/` |
+| 產品總覽手冊   | **`docs/PRODUCT_HANDBOOK.md`** |
 | 登入後導向邏輯 | `src/lib/tenant/post-auth.ts` |
 | 案件列表／明細 | `src/app/[locale]/(app)/projects/`、`project-info-editor.tsx`、`[id]/actions.ts` |
 | 客戶／案件流程圖 | **`docs/PROJECT_CUSTOMER_FLOW.md`** |
@@ -83,7 +105,7 @@
 
 ---
 
-*最後更新：2026-06-18 — 案件明細修改／刪除確認、Intake V1 狀態、流程圖手冊更新。*
+*最後更新：2026-06-19 — 新增產品總覽手冊、048/049 遷移、財務月結、側欄權限對照。*
 
 ---
 

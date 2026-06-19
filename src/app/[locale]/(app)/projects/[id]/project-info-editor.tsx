@@ -149,7 +149,7 @@ export function ProjectInfoEditor(props: {
   const [deliveryDeadline, setDeliveryDeadline] = React.useState(isoToDateTimeLocal(initial.deliveryDeadline));
   const [notes, setNotes] = React.useState(initial.notes ?? "");
 
-  const [customerId, setCustomerId] = React.useState(initial.customerId);
+  const [customerId, setCustomerId] = React.useState(initial.customerId ?? "");
   const [customerInput, setCustomerInput] = React.useState(initial.customerLabel);
   const [committedLabel, setCommittedLabel] = React.useState<string | null>(initial.customerLabel);
   const [suggestions, setSuggestions] = React.useState<CustomerSearchOption[]>([]);
@@ -205,7 +205,7 @@ export function ProjectInfoEditor(props: {
     setTitle(initial.title);
     setDeliveryDeadline(isoToDateTimeLocal(initial.deliveryDeadline));
     setNotes(initial.notes ?? "");
-    setCustomerId(initial.customerId);
+    setCustomerId(initial.customerId ?? "");
     setCustomerInput(initial.customerLabel);
     setCommittedLabel(initial.customerLabel);
     setSuggestions([]);
@@ -240,7 +240,7 @@ export function ProjectInfoEditor(props: {
           ? labels.errorGeneric
           : null;
 
-  const canSave = Boolean(customerId.trim());
+  const canSave = Boolean((customerId ?? "").trim());
 
   return (
     <div className="flex flex-col gap-3">

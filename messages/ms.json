@@ -119,7 +119,7 @@
   },
   "Welcome": {
     "title": "Selamat datang",
-    "subtitle": "Kemas kini profil anda, kemudian pilih sama ada untuk mencipta penyewa syarikat baharu atau mendaftar sebagai vendor / penterjemah luaran.",
+    "subtitle": "Anda belum menyertai sebarang syarikat atau ruang kerja. Cipta syarikat baharu, atau tunggu jemputan daripada pentadbir.",
     "readyForWorkspace": "Ruang kerja anda sedia.",
     "enterWorkspace": "Pergi ke ruang kerja",
     "profileHeading": "Profil",
@@ -131,7 +131,7 @@
     "profileSaved": "Disimpan.",
     "errorGeneric": "Berlaku ralat. Sila cuba lagi.",
     "identityHeading": "Langkah seterusnya",
-    "identityHint": "Pilih sama ada untuk mencipta penyewa syarikat anda sendiri atau mendaftar sebagai vendor / penterjemah luaran.",
+    "identityHint": "Jika anda sudah mempunyai jemputan, lengkapkan proses jemputan terlebih dahulu. Jika tidak, cipta syarikat baharu (ruang kerja) untuk bermula.",
     "vendorHeading": "Jadi vendor / penterjemah luaran",
     "vendorDescription": "Jika anda mewakili syarikat terjemahan lain, agensi luaran, atau penterjemah bebas, daftar di sini (kebenaran diuruskan secara berasingan).",
     "vendorCta": "Saya mewakili vendor / agensi luaran",
@@ -858,7 +858,8 @@
     "vendorList": "Senarai vendor",
     "addCase": "Tambah projek baharu",
     "logout": "Log Keluar",
-    "welcomeToSystem": "Selamat datang ke sistem pengurusan ini."
+    "welcomeToSystem": "Selamat datang ke sistem pengurusan ini.",
+    "showPassword": "Tunjuk kata laluan"
   }
 }
 
