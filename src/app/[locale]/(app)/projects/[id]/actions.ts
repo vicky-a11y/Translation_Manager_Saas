@@ -1,5 +1,6 @@
 "use server";
 
+import {redirect} from "next/navigation";
 import {revalidatePath} from "next/cache";
 
 import {validateFinancialInput, PAYMENT_METHOD} from "@/lib/finance/financial-logic";
@@ -251,6 +252,105 @@ export async function upsertProjectTranslatorAssignmentAction(
 
   revalidatePath(`/${locale}/projects/${projectId}`);
   return {ok: true, assignmentId: String(data.id)};
+}
+
+export type UpdateProjectInfoState = {
+  ok?: boolean;
+  errorKey?: "auth" | "no_workspace" | "forbidden" | "validation" | "duplicate" | "database" | "not_found";
+};
+
+export async function updateProjectInfoAction(
+  _prev: UpdateProjectInfoState,
+  formData: FormData,
+): Promise<UpdateProjectInfoState> {
+  const ctx = await requireProjectEditContext();
+  if (!ctx.user) return {errorKey: "auth"};
+  if (!ctx.tenantId) return {errorKey: "no_workspace"};
+  if (!ctx.ok) return {errorKey: "forbidden"};
+
+  const localeRaw = String(formData.get("locale") ?? "").trim();
+  const locale = isLocale(localeRaw) ? localeRaw : defaultLocale;
+
+  const projectId = String(formData.get("project_id") ?? "").trim();
+  if (!projectId) return {errorKey: "validation"};
+
+  const projectCode = String(formData.get("project_code") ?? "").trim();
+  if (!projectCode || projectCode.length > 50) return {errorKey: "validation"};
+
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title || title.length > 200) return {errorKey: "validation"};
+
+  const deliveryDeadline = normalizeDateTimeLocal(String(formData.get("delivery_deadline") ?? ""));
+  if (!deliveryDeadline) return {errorKey: "validation"};
+
+  const customerId = String(formData.get("customer_id") ?? "").trim();
+  if (!customerId) return {errorKey: "validation"};
+
+  const notes = String(formData.get("notes") ?? "").trim().slice(0, 5000) || null;
+
+  const {data: existing} = await ctx.supabase
+    .from("projects")
+    .select("id")
+    .eq("tenant_id", ctx.tenantId)
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!existing) return {errorKey: "not_found"};
+
+  const {data: customer} = await ctx.supabase
+    .from("customer_master")
+    .select("id")
+    .eq("tenant_id", ctx.tenantId)
+    .eq("id", customerId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (!customer) return {errorKey: "validation"};
+
+  const {error, count} = await ctx.supabase
+    .from("projects")
+    .update(
+      {
+        project_code: projectCode,
+        title,
+        delivery_deadline: deliveryDeadline,
+        customer_id: customerId,
+        notes,
+      },
+      {count: "exact"},
+    )
+    .eq("tenant_id", ctx.tenantId)
+    .eq("id", projectId);
+
+  if (error) {
+    if (error.code === "23505") return {errorKey: "duplicate"};
+    return {errorKey: "database"};
+  }
+  if (count !== 1) return {errorKey: "database"};
+
+  revalidatePath(`/${locale}/projects/${projectId}`);
+  revalidatePath(`/${locale}/projects`);
+  return {ok: true};
+}
+
+export async function deleteProjectAction(formData: FormData): Promise<{ok: boolean}> {
+  const ctx = await requireProjectEditContext();
+  if (!ctx.user || !ctx.tenantId || !ctx.ok) return {ok: false};
+
+  const localeRaw = String(formData.get("locale") ?? "").trim();
+  const locale = isLocale(localeRaw) ? localeRaw : defaultLocale;
+
+  const projectId = String(formData.get("project_id") ?? "").trim();
+  if (!projectId) return {ok: false};
+
+  const {error, count} = await ctx.supabase
+    .from("projects")
+    .delete({count: "exact"})
+    .eq("tenant_id", ctx.tenantId)
+    .eq("id", projectId);
+
+  if (error || count !== 1) return {ok: false};
+
+  revalidatePath(`/${locale}/projects`);
+  redirect(`/${locale}/projects`);
 }
 
 export async function deleteProjectTranslatorAssignmentAction(formData: FormData): Promise<{ok: boolean}> {

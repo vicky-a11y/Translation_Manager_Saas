@@ -94,9 +94,17 @@ export default async function CustomersIndexPage({params}: {params: Promise<{loc
             <h1 className="text-lg font-semibold tracking-tight">{t("heading")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
           </div>
-          <Link href={`/${locale}/customers/new`} className={cn(buttonVariants({variant: "default"}), "shrink-0")}>
-            {t("addCustomer")}
-          </Link>
+          <div className="flex shrink-0 gap-2">
+            <Link
+              href={`/${locale}/customers/intake`}
+              className={cn(buttonVariants({variant: "outline"}))}
+            >
+              {t("intakeInbox")}
+            </Link>
+            <Link href={`/${locale}/customers/new`} className={cn(buttonVariants({variant: "default"}))}>
+              {t("addCustomer")}
+            </Link>
+          </div>
         </div>
 
         {list.length === 0 ? (

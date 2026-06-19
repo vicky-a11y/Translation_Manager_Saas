@@ -5,6 +5,7 @@
 ## 核心業務
 
 - **譯者人才庫**：`Translators` 資料表與管理介面。
+- **譯者母語與語言能力 UI**：`translator_master.native_lang`、`language_skills` 欄位已存在；表單 UI 暫緩，見 `docs/TRANSLATOR_MANAGEMENT_V1_STATUS.md` §3.4。
 - **各語種費率管理**：依語言/單位計價等規則。
 - **專業領域標籤**：案件與譯者之領域分類與篩選。
 

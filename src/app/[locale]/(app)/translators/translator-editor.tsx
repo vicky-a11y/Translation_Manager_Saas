@@ -42,36 +42,6 @@ function dateToYmdSlashes(value: unknown) {
   return raw;
 }
 
-const LANGUAGE_OPTIONS = [
-  "中文",
-  "英文",
-  "日文",
-  "韓文",
-  "西文",
-  "法文",
-  "葡萄牙文",
-  "俄文",
-  "越南文",
-  "印尼文",
-  "泰文",
-  "馬來文",
-  "緬甸文",
-  "高棉語",
-] as const;
-
-/** 與 `translator_master.native_lang`（varchar 2–10）及站內語系代碼對齊 */
-const NATIVE_LANG_OPTIONS = ["zh-TW", "zh-CN", "en", "ms", "ja", "ko"] as const;
-
-const NATIVE_LANG_LABEL_KEYS: Record<(typeof NATIVE_LANG_OPTIONS)[number], string> = {
-  "zh-TW": "nativeLangOption_zh_TW",
-  "zh-CN": "nativeLangOption_zh_CN",
-  en: "nativeLangOption_en",
-  ms: "nativeLangOption_ms",
-  ja: "nativeLangOption_ja",
-  ko: "nativeLangOption_ko",
-};
-
-/** 與 `service_tag_definitions` / DB check 一致 */
 const SERVICE_TAG_ROWS = [
   {code: "TR-EN-ZH" as const, labelKey: "serviceTagTrEnZh" as const},
   {code: "TR-ZH-EN" as const, labelKey: "serviceTagTrZhEn" as const},
@@ -106,17 +76,6 @@ const selectFieldClass = cn(
   "dark:bg-input/30",
 );
 
-function parseLanguageSkills(raw: unknown): string[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
-  try {
-    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
-  } catch {
-    return [];
-  }
-}
-
 function parseServiceTags(raw: unknown): string[] {
   const fallback = ["TR-EN-ZH"];
   if (raw == null || raw === "") return fallback;
@@ -139,20 +98,8 @@ export function TranslatorEditor({locale, mode, initial}: TranslatorEditorProps)
   const id = valueOf(initial, "id");
   const translatorIdValue = valueOf(initial, "translator_id");
 
-  const initialLang = useMemo(() => parseLanguageSkills(initial?.language_skills), [initial]);
-  const [languageSkills, setLanguageSkills] = useState<string[]>(initialLang);
-
   const initialTags = useMemo(() => parseServiceTags(initial?.service_tags), [initial]);
   const [serviceTags, setServiceTags] = useState<string[]>(initialTags);
-
-  const nativeInitial = valueOf(initial, "native_lang");
-  const nativeLangOptions = useMemo(() => {
-    const base = [...NATIVE_LANG_OPTIONS];
-    if (nativeInitial && !(NATIVE_LANG_OPTIONS as readonly string[]).includes(nativeInitial)) {
-      return [nativeInitial, ...base];
-    }
-    return base;
-  }, [nativeInitial]);
 
   const nationalityInitial = valueOf(initial, "nationality");
   const nationalityOptions = useMemo(() => {
@@ -236,7 +183,6 @@ export function TranslatorEditor({locale, mode, initial}: TranslatorEditorProps)
           <form id="translator-form" action={formAction} className="flex flex-col gap-6">
             <input type="hidden" name="locale" value={locale} />
             {mode === "edit" ? <input type="hidden" name="id" value={id} /> : null}
-            <input type="hidden" name="language_skills" value={JSON.stringify(languageSkills)} readOnly />
             <input type="hidden" name="service_tags" value={JSON.stringify(serviceTags)} readOnly />
 
             <section className="grid gap-4 sm:grid-cols-2">
@@ -385,54 +331,6 @@ export function TranslatorEditor({locale, mode, initial}: TranslatorEditorProps)
               </div>
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="native_lang">
-                  {t("nativeLang")} <span className="text-destructive">*</span>
-                </Label>
-                <select
-                  id="native_lang"
-                  name="native_lang"
-                  required
-                  defaultValue={nativeInitial || NATIVE_LANG_OPTIONS[0]}
-                  className={selectFieldClass}
-                >
-                  {nativeLangOptions.map((code) => (
-                    <option key={code} value={code}>
-                      {code in NATIVE_LANG_LABEL_KEYS
-                        ? t(NATIVE_LANG_LABEL_KEYS[code as keyof typeof NATIVE_LANG_LABEL_KEYS])
-                        : code}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("languageSkills")}</Label>
-                <div className="flex flex-wrap gap-2 rounded-lg border border-input bg-transparent p-3 text-sm dark:bg-input/30">
-                  {LANGUAGE_OPTIONS.map((lang) => {
-                    const active = languageSkills.includes(lang);
-                    return (
-                      <button
-                        key={lang}
-                        type="button"
-                        className={cn(
-                          "rounded-md border px-2 py-1 text-xs transition-colors",
-                          active ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground",
-                        )}
-                        onClick={() => {
-                          setLanguageSkills((prev) =>
-                            prev.includes(lang) ? prev.filter((x) => x !== lang) : [...prev, lang],
-                          );
-                        }}
-                      >
-                        {lang}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
-
             <section className="grid gap-4">
               <div className="space-y-2">
                 <Label>{t("serviceTags")}</Label>
@@ -476,7 +374,17 @@ export function TranslatorEditor({locale, mode, initial}: TranslatorEditorProps)
                 <Label htmlFor="bank_code">
                   {t("bankCode")} <span className="text-destructive">*</span>
                 </Label>
-                <Input id="bank_code" name="bank_code" required defaultValue={valueOf(initial, "bank_code")} />
+                <Input
+                  id="bank_code"
+                  name="bank_code"
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]{3}"
+                  maxLength={3}
+                  placeholder="812"
+                  defaultValue={valueOf(initial, "bank_code")}
+                />
+                <p className="text-xs text-muted-foreground">{t("bankCodeHint")}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bank_branch">{t("bankBranch")}</Label>
@@ -486,7 +394,18 @@ export function TranslatorEditor({locale, mode, initial}: TranslatorEditorProps)
                 <Label htmlFor="bank_account">
                   {t("bankAccount")} <span className="text-destructive">*</span>
                 </Label>
-                <Input id="bank_account" name="bank_account" required defaultValue={valueOf(initial, "bank_account")} />
+                <Input
+                  id="bank_account"
+                  name="bank_account"
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]{9,30}"
+                  minLength={9}
+                  maxLength={30}
+                  placeholder="012345678901"
+                  defaultValue={valueOf(initial, "bank_account")}
+                />
+                <p className="text-xs text-muted-foreground">{t("bankAccountHint")}</p>
               </div>
             </section>
           </form>

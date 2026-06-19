@@ -69,7 +69,7 @@ export default async function TranslatorsPage({params}: {params: Promise<{locale
 
   const {data: rows} = await supabase
     .from("translator_master")
-    .select("id, translator_id, name, line_name, email, native_lang, service_tags, status, created_at")
+    .select("id, translator_id, name, line_name, email, service_tags, status, created_at")
     .eq("tenant_id", tenantId)
     .order("created_at", {ascending: false})
     .limit(200);
@@ -126,7 +126,7 @@ export default async function TranslatorsPage({params}: {params: Promise<{locale
                   <TableHead className="min-w-[7rem]">{t("colTranslatorId")}</TableHead>
                   <TableHead className="min-w-[10rem]">{t("colName")}</TableHead>
                   <TableHead className="min-w-[12rem]">{t("colEmail")}</TableHead>
-                  <TableHead>{t("colCategoryLang")}</TableHead>
+                  <TableHead>{t("colServiceTags")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -137,7 +137,6 @@ export default async function TranslatorsPage({params}: {params: Promise<{locale
                     name: string;
                     line_name: string | null;
                     email: string;
-                    native_lang: string;
                     service_tags: unknown;
                   };
                   const displayName = r.line_name?.trim() ? r.line_name.trim() : r.name;
@@ -151,9 +150,7 @@ export default async function TranslatorsPage({params}: {params: Promise<{locale
                         </Link>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{valueOrDash(r.email)}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {valueOrDash(r.native_lang)} · {formatTags(r.service_tags)}
-                      </TableCell>
+                      <TableCell className="text-muted-foreground">{formatTags(r.service_tags)}</TableCell>
                     </TableRow>
                   );
                 })}

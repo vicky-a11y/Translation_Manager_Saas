@@ -139,5 +139,20 @@ export function createCustomerMasterRepository(ctx: TenantContext) {
         .order("updated_at", {ascending: false})
         .limit(limit);
     },
+
+    deleteById(customerId: string) {
+      return ctx.supabase
+        .from("customer_master")
+        .delete({count: "exact"})
+        .eq("tenant_id", ctx.tenantId)
+        .eq("id", customerId);
+    },
+
+    countProjectsForCustomer(customerId: string) {
+      return scoped()
+        .from("projects")
+        .select("id", {count: "exact", head: true})
+        .eq("customer_id", customerId);
+    },
   };
 }

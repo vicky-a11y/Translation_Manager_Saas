@@ -77,10 +77,13 @@
 | 遷移 033／047  | 帳戶密碼／基本資料 RPC（繞過 `profiles_update_own` 過嚴 CHECK） |
 | 遷移 042–046   | owner 權限、邀請登入、重寄刷新 token |
 | 登入後導向邏輯 | `src/lib/tenant/post-auth.ts` |
+| 案件列表／明細 | `src/app/[locale]/(app)/projects/`、`project-info-editor.tsx`、`[id]/actions.ts` |
+| 客戶／案件流程圖 | **`docs/PROJECT_CUSTOMER_FLOW.md`** |
+| Intake V1 設計 | **`docs/CUSTOMER_INTAKE_DESIGN.md`** |
 
 ---
 
-*最後更新：2026-05-21 — 新增 RLS 手冊交叉引用、邀請連結格式更新。*
+*最後更新：2026-06-18 — 案件明細修改／刪除確認、Intake V1 狀態、流程圖手冊更新。*
 
 ---
 

@@ -12,7 +12,14 @@ import {defaultLocale, locales, type AppLocale} from "@/i18n/routing";
 
 export type TranslatorFormState = {
   ok?: boolean;
-  errorKey?: "auth" | "no_workspace" | "forbidden" | "validation" | "database";
+  errorKey?:
+    | "auth"
+    | "no_workspace"
+    | "forbidden"
+    | "validation"
+    | "validation_bank_code"
+    | "validation_bank_account"
+    | "database";
   translatorId?: string;
   errorMessage?: string;
   errorCode?: string;
@@ -52,6 +59,41 @@ function normServiceTags(value: FormDataEntryValue | null): string[] {
     .filter((x) => ALLOWED_SERVICE_TAGS.has(x));
   if (picked.length > 0) return picked;
   return ["TR-EN-ZH"];
+}
+
+/** UI 暫不編輯；DB `native_lang` NOT NULL，新增時寫入佔位值，待後續語言能力模組落地。 */
+const DEFERRED_NATIVE_LANG = "und";
+
+function normDigits(value: FormDataEntryValue | null) {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+/** 須符合 `translator_master_bank_code_chk`：3 碼數字。 */
+function normBankCode(value: FormDataEntryValue | null) {
+  return normDigits(value);
+}
+
+/** 須符合 `translator_master_bank_account_chk`：純數字且長度 > 8（至少 9 碼）。 */
+function normBankAccount(value: FormDataEntryValue | null) {
+  return normDigits(value);
+}
+
+function isValidBankCode(code: string) {
+  return /^[0-9]{3}$/.test(code);
+}
+
+function isValidBankAccount(account: string) {
+  return /^[0-9]+$/.test(account) && account.length > 8;
+}
+
+function mapTranslatorDbError(error: {code?: string; message?: string} | null): TranslatorFormState {
+  if (error?.code === "23514" && error.message?.includes("translator_master_bank_account_chk")) {
+    return {errorKey: "validation_bank_account"};
+  }
+  if (error?.code === "23514" && error.message?.includes("translator_master_bank_code_chk")) {
+    return {errorKey: "validation_bank_code"};
+  }
+  return {errorKey: "database", errorMessage: error?.message, errorCode: error?.code};
 }
 
 function normalizeDate(value: FormDataEntryValue | null) {
@@ -99,20 +141,26 @@ export async function createTranslatorAction(_prev: TranslatorFormState, formDat
   const email = normRequired(formData.get("email"));
   const idNumber = normRequired(formData.get("id_number"));
   const nationality = normRequired(formData.get("nationality"));
-  const nativeLang = normRequired(formData.get("native_lang"));
-  const bankCode = normRequired(formData.get("bank_code"));
-  const bankAccount = normRequired(formData.get("bank_account"));
+  const bankCode = normBankCode(formData.get("bank_code"));
+  const bankAccount = normBankAccount(formData.get("bank_account"));
 
   if (
     !name ||
     !email ||
     !idNumber ||
     !nationality ||
-    !nativeLang ||
     !bankCode ||
     !bankAccount
   ) {
     return {errorKey: "validation"};
+  }
+
+  if (!isValidBankCode(bankCode)) {
+    return {errorKey: "validation_bank_code"};
+  }
+
+  if (!isValidBankAccount(bankAccount)) {
+    return {errorKey: "validation_bank_account"};
   }
 
   const payload = {
@@ -137,8 +185,8 @@ export async function createTranslatorAction(_prev: TranslatorFormState, formDat
     education_school_name: normText(formData.get("education_school_name")),
     education_major: normText(formData.get("education_major")),
     education_degree: normText(formData.get("education_degree")),
-    native_lang: nativeLang,
-    language_skills: normJsonArray(formData.get("language_skills")),
+    native_lang: DEFERRED_NATIVE_LANG,
+    language_skills: [],
     bank_name: normText(formData.get("bank_name")),
     bank_code: bankCode,
     bank_branch: normText(formData.get("bank_branch")),
@@ -151,7 +199,7 @@ export async function createTranslatorAction(_prev: TranslatorFormState, formDat
 
   const {data, error} = await ctx.supabase.from("translator_master").insert(payload).select("id").single();
   if (error || !data?.id) {
-    return {errorKey: "database", errorMessage: error?.message, errorCode: (error as {code?: string} | null)?.code};
+    return mapTranslatorDbError(error);
   }
 
   revalidatePath(`/${locale}/translators`);
@@ -175,20 +223,26 @@ export async function updateTranslatorAction(_prev: TranslatorFormState, formDat
   const email = normRequired(formData.get("email"));
   const idNumber = normRequired(formData.get("id_number"));
   const nationality = normRequired(formData.get("nationality"));
-  const nativeLang = normRequired(formData.get("native_lang"));
-  const bankCode = normRequired(formData.get("bank_code"));
-  const bankAccount = normRequired(formData.get("bank_account"));
+  const bankCode = normBankCode(formData.get("bank_code"));
+  const bankAccount = normBankAccount(formData.get("bank_account"));
 
   if (
     !name ||
     !email ||
     !idNumber ||
     !nationality ||
-    !nativeLang ||
     !bankCode ||
     !bankAccount
   ) {
     return {errorKey: "validation"};
+  }
+
+  if (!isValidBankCode(bankCode)) {
+    return {errorKey: "validation_bank_code"};
+  }
+
+  if (!isValidBankAccount(bankAccount)) {
+    return {errorKey: "validation_bank_account"};
   }
 
   const payload = {
@@ -211,8 +265,7 @@ export async function updateTranslatorAction(_prev: TranslatorFormState, formDat
     education_school_name: normText(formData.get("education_school_name")),
     education_major: normText(formData.get("education_major")),
     education_degree: normText(formData.get("education_degree")),
-    native_lang: nativeLang,
-    language_skills: normJsonArray(formData.get("language_skills")),
+    // native_lang / language_skills：UI 暫不提供，更新時保留 DB 既有值
     bank_name: normText(formData.get("bank_name")),
     bank_code: bankCode,
     bank_branch: normText(formData.get("bank_branch")),
@@ -227,7 +280,7 @@ export async function updateTranslatorAction(_prev: TranslatorFormState, formDat
     .update(payload)
     .eq("tenant_id", ctx.tenantId)
     .eq("id", id);
-  if (error) return {errorKey: "database", errorMessage: error.message, errorCode: (error as {code?: string}).code};
+  if (error) return mapTranslatorDbError(error);
 
   revalidatePath(`/${locale}/translators`);
   revalidatePath(`/${locale}/translators/${id}`);

@@ -5,9 +5,10 @@ import {useRouter} from "next/navigation";
 import {useActionState, useEffect, useMemo, useState} from "react";
 import {useTranslations} from "next-intl";
 
-import {updateCustomerAction, type UpdateCustomerFormState} from "./actions";
+import {deleteCustomerAction, updateCustomerAction, type UpdateCustomerFormState} from "./actions";
 import {Button, buttonVariants} from "@/components/ui/button";
 import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
+import {Dialog, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Switch} from "@/components/ui/switch";
@@ -76,6 +77,9 @@ export function CustomerDetailForm({locale, customer}: CustomerDetailFormProps) 
   const [state, formAction, isPending] = useActionState(updateCustomerAction, initialUpdateState);
   const [isActive, setIsActive] = useState(customer.is_active);
   const [showSaved, setShowSaved] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteErrorKey, setDeleteErrorKey] = useState<string | null>(null);
 
   const initialType = customer.customer_type != null ? customer.customer_type : 1;
   const [uxMode, setUxMode] = useState<UxMode>(initialType === 3 ? "foreign_individual" : "standard");
@@ -108,6 +112,23 @@ export function CustomerDetailForm({locale, customer}: CustomerDetailFormProps) 
   }, [state.saved, router]);
 
   const base = `/${locale}`;
+
+  async function doDelete() {
+    setDeletePending(true);
+    setDeleteErrorKey(null);
+    try {
+      const fd = new FormData();
+      fd.set("locale", locale);
+      fd.set("customer_id", customer.id);
+      const res = await deleteCustomerAction(fd);
+      if (!res.ok && res.errorKey) {
+        setDeleteErrorKey(res.errorKey);
+        setConfirmDeleteOpen(false);
+      }
+    } finally {
+      setDeletePending(false);
+    }
+  }
 
   return (
     <Card className="mx-auto w-full max-w-2xl">
@@ -149,6 +170,11 @@ export function CustomerDetailForm({locale, customer}: CustomerDetailFormProps) 
             >
               {tNew("errors.duplicate_imLink")}
             </Link>
+          </p>
+        ) : null}
+        {deleteErrorKey ? (
+          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {t(`errors.${deleteErrorKey}`)}
           </p>
         ) : null}
 
@@ -457,11 +483,35 @@ export function CustomerDetailForm({locale, customer}: CustomerDetailFormProps) 
           <Link href={`${base}/customers/new`} className={cn(buttonVariants({variant: "secondary", size: "default"}))}>
             {t("addAnother")}
           </Link>
+          <Button
+            type="button"
+            variant="destructive"
+            size="default"
+            onClick={() => setConfirmDeleteOpen(true)}
+            disabled={isPending || deletePending}
+          >
+            {t("delete")}
+          </Button>
         </div>
-        <Button type="submit" form="customer-detail-form" disabled={isPending}>
+        <Button type="submit" form="customer-detail-form" disabled={isPending || deletePending}>
           {isPending ? t("saving") : t("save")}
         </Button>
       </CardFooter>
+
+      <Dialog open={confirmDeleteOpen} onOpenChange={(next) => !deletePending && setConfirmDeleteOpen(next)}>
+        <DialogHeader>
+          <DialogTitle>{t("deleteConfirmTitle")}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">{t("deleteConfirmBody")}</p>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)} disabled={deletePending}>
+            {t("no")}
+          </Button>
+          <Button variant="destructive" onClick={() => void doDelete()} disabled={deletePending}>
+            {deletePending ? t("deleting") : t("yes")}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </Card>
   );
 }

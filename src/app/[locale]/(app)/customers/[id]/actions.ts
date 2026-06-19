@@ -1,5 +1,8 @@
 "use server";
 
+import {redirect} from "next/navigation";
+import {revalidatePath} from "next/cache";
+
 import {
   CUSTOMER_COUNTRY_CODES,
   IM_PLATFORMS,
@@ -16,6 +19,65 @@ import {
   syncPrimaryContactFromMaster,
 } from "@/lib/repositories/customer-primary-contact-sync";
 import {getWorkspaceTenantId} from "@/lib/tenant/workspace";
+import {defaultLocale, locales, type AppLocale} from "@/i18n/routing";
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isLocale(value: string): value is AppLocale {
+  return (locales as readonly string[]).includes(value);
+}
+
+export type DeleteCustomerResult = {
+  ok: boolean;
+  errorKey?: "auth" | "no_workspace" | "forbidden" | "validation" | "not_found" | "has_projects" | "database";
+};
+
+export async function deleteCustomerAction(formData: FormData): Promise<DeleteCustomerResult> {
+  const supabase = await createClient();
+  const {
+    data: {user},
+  } = await supabase.auth.getUser();
+
+  if (!user) return {ok: false, errorKey: "auth"};
+
+  const {data: profile} = await supabase
+    .from("profiles")
+    .select("tenant_id, active_tenant_id, role, permissions")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const tenantId = getWorkspaceTenantId(profile);
+  if (!tenantId) return {ok: false, errorKey: "no_workspace"};
+
+  const isSuper = (profile?.role as ProfileRole | undefined) === "super_admin";
+  const flags = parsePermissions(profile?.permissions);
+  if (!isSuper && !flags.can_edit_projects) return {ok: false, errorKey: "forbidden"};
+
+  const localeRaw = String(formData.get("locale") ?? "").trim();
+  const locale = isLocale(localeRaw) ? localeRaw : defaultLocale;
+
+  const customerId = String(formData.get("customer_id") ?? "").trim();
+  if (!customerId || !uuidPattern.test(customerId)) return {ok: false, errorKey: "validation"};
+
+  const repo = createCustomerMasterRepository({supabase, tenantId});
+  const {data: existing} = await repo.getById(customerId);
+  if (!existing) return {ok: false, errorKey: "not_found"};
+
+  const {count: projectCount, error: countErr} = await repo.countProjectsForCustomer(customerId);
+  if (countErr) return {ok: false, errorKey: "database"};
+  if ((projectCount ?? 0) > 0) return {ok: false, errorKey: "has_projects"};
+
+  const {error, count} = await repo.deleteById(customerId);
+  if (error) {
+    if (error.code === "23503") return {ok: false, errorKey: "has_projects"};
+    return {ok: false, errorKey: "database"};
+  }
+  if (count !== 1) return {ok: false, errorKey: "database"};
+
+  revalidatePath(`/${locale}/customers`);
+  redirect(`/${locale}/customers`);
+}
 
 export type UpdateCustomerFormState = {
   saved?: boolean;
@@ -31,9 +93,6 @@ export type UpdateCustomerFormState = {
     | "not_found";
   duplicateExistingId?: string;
 };
-
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isImPlatform(v: string): v is (typeof IM_PLATFORMS)[number] {
   return (IM_PLATFORMS as readonly string[]).includes(v);

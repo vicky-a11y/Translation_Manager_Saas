@@ -16,9 +16,25 @@ import type {AppLocale} from "@/i18n/routing";
 
 const initialActionState: CreateProjectFormState = {};
 
+export type IntakeReference = {
+  projectType?: string | null;
+  remittanceAmount?: number | null;
+  remittanceBank?: string | null;
+  remittanceLast5?: string | null;
+  hasTaxInvoice?: boolean;
+  taxTitle?: string | null;
+  taxId?: string | null;
+  address?: string | null;
+  channel?: string | null;
+  shipping?: string | null;
+};
+
 type ProjectNewFormProps = {
   locale: AppLocale;
   hasCustomers: boolean;
+  initialCustomer?: {id: string; label: string} | null;
+  initialAmount?: string | null;
+  reference?: IntakeReference | null;
 };
 
 function formatCustomerLabel(c: CustomerSearchOption) {
@@ -40,11 +56,17 @@ function formatMoney(value: number, locale: AppLocale) {
   return new Intl.NumberFormat(tag, {maximumFractionDigits: 0}).format(value);
 }
 
-export function ProjectNewForm({locale, hasCustomers}: ProjectNewFormProps) {
+export function ProjectNewForm({
+  locale,
+  hasCustomers,
+  initialCustomer = null,
+  initialAmount = null,
+  reference = null,
+}: ProjectNewFormProps) {
   const t = useTranslations("ProjectsNew");
   const [state, formAction, isPending] = useActionState(createProjectAction, initialActionState);
   const createdAtPreview = useMemo(() => formatNowForDisplay(locale), [locale]);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(initialAmount ?? "");
   const [disbursementFee, setDisbursementFee] = useState("");
   const breakdown = useMemo(
     () =>
@@ -56,9 +78,9 @@ export function ProjectNewForm({locale, hasCustomers}: ProjectNewFormProps) {
     [amount, disbursementFee],
   );
 
-  const [customerInput, setCustomerInput] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [committedLabel, setCommittedLabel] = useState<string | null>(null);
+  const [customerInput, setCustomerInput] = useState(initialCustomer?.label ?? "");
+  const [customerId, setCustomerId] = useState(initialCustomer?.id ?? "");
+  const [committedLabel, setCommittedLabel] = useState<string | null>(initialCustomer?.label ?? null);
   const [suggestions, setSuggestions] = useState<CustomerSearchOption[]>([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [suggestLoading, setSuggestLoading] = useState(false);
@@ -136,6 +158,39 @@ export function ProjectNewForm({locale, hasCustomers}: ProjectNewFormProps) {
           <p className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
             {t("noCustomers")}
           </p>
+        ) : null}
+
+        {reference ? (
+          <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/5 px-3 py-3">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">{t("prefillNotice")}</p>
+            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("referenceHeading")}
+            </p>
+            <dl className="mt-2 grid gap-1.5 text-sm sm:grid-cols-2">
+              <RefRow label={t("refProjectType")} value={reference.projectType} none={t("refNone")} />
+              <RefRow label={t("refChannel")} value={reference.channel} none={t("refNone")} />
+              <RefRow
+                label={t("refRemittanceAmount")}
+                value={reference.remittanceAmount != null ? String(reference.remittanceAmount) : null}
+                none={t("refNone")}
+              />
+              <RefRow label={t("refRemittanceBank")} value={reference.remittanceBank} none={t("refNone")} />
+              <RefRow label={t("refRemittanceLast5")} value={reference.remittanceLast5} none={t("refNone")} />
+              <RefRow
+                label={t("refInvoice")}
+                value={reference.hasTaxInvoice ? t("refYes") : t("refNo")}
+                none={t("refNone")}
+              />
+              {reference.hasTaxInvoice ? (
+                <>
+                  <RefRow label={t("refTaxTitle")} value={reference.taxTitle} none={t("refNone")} />
+                  <RefRow label={t("refTaxId")} value={reference.taxId} none={t("refNone")} />
+                </>
+              ) : null}
+              <RefRow label={t("refAddress")} value={reference.address} none={t("refNone")} />
+              <RefRow label={t("refShipping")} value={reference.shipping} none={t("refNone")} />
+            </dl>
+          </div>
         ) : null}
 
         <form id="project-new-form" action={formAction} className="flex flex-col gap-5">
@@ -235,6 +290,22 @@ export function ProjectNewForm({locale, hasCustomers}: ProjectNewFormProps) {
             <Input id="delivery_deadline" name="delivery_deadline" type="datetime-local" required />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="notes">{t("notes")}</Label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={3}
+              maxLength={5000}
+              placeholder={t("notesPlaceholder")}
+              className={cn(
+                "w-full min-w-0 resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none",
+                "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+              )}
+            />
+            <p className="text-xs text-muted-foreground">{t("notesHint")}</p>
+          </div>
+
           <section className="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("sectionFinance")}</p>
 
@@ -297,5 +368,14 @@ export function ProjectNewForm({locale, hasCustomers}: ProjectNewFormProps) {
         </Button>
       </CardFooter>
     </Card>
+  );
+}
+
+function RefRow({label, value, none}: {label: string; value: string | null | undefined; none: string}) {
+  return (
+    <div className="flex justify-between gap-2">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium">{value && value.trim() ? value : none}</dd>
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import {getTranslations} from "next-intl/server";
 import {DashboardShell} from "@/components/layout/dashboard-shell";
 import {buttonVariants} from "@/components/ui/button";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {YearMonthFilter} from "@/components/ui/year-month-filter";
 import {createClient} from "@/lib/supabase/server";
 import {parsePermissions} from "@/lib/permissions/parse-permissions";
 import type {ProfileRole} from "@/lib/permissions/types";
@@ -90,9 +91,24 @@ function formatTranslatorCell(
   }
 }
 
-export default async function ProjectsPage({params}: {params: Promise<{locale: string}>}) {
+export default async function ProjectsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{locale: string}>;
+  searchParams: Promise<{year?: string; month?: string}>;
+}) {
   const {locale: localeParam} = await params;
   const locale: AppLocale = isLocale(localeParam) ? localeParam : defaultLocale;
+
+  const {year: yearParam, month: monthParam} = await searchParams;
+  const now = new Date();
+  const year = yearParam ? parseInt(yearParam, 10) : now.getFullYear();
+  const month = monthParam ? parseInt(monthParam, 10) : now.getMonth() + 1;
+  const validYear = Number.isFinite(year) ? year : now.getFullYear();
+  const validMonth = Number.isFinite(month) && month >= 1 && month <= 12 ? month : now.getMonth() + 1;
+  const startISO = new Date(validYear, validMonth - 1, 1).toISOString();
+  const endISO = new Date(validYear, validMonth, 1).toISOString();
 
   const supabase = await createClient();
   const {
@@ -126,8 +142,10 @@ export default async function ProjectsPage({params}: {params: Promise<{locale: s
     .from("projects")
     .select("id, project_code, title, delivery_deadline, customer_master(display_name)")
     .eq("tenant_id", tenantId)
+    .gte("created_at", startISO)
+    .lt("created_at", endISO)
     .order("created_at", {ascending: false})
-    .limit(100);
+    .limit(500);
   logProjectQueryError("projects list page", projectsErr, tenantId);
   const navT = await getTranslations({locale, namespace: "Navigation"});
   const t = await getTranslations({locale, namespace: "ProjectsPage"});
@@ -182,9 +200,11 @@ export default async function ProjectsPage({params}: {params: Promise<{locale: s
           </Link>
         </div>
 
+        <YearMonthFilter year={validYear} month={validMonth} locale={locale} yearLabel={t("yearLabel")} />
+
         {list.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            {t("empty")}
+            {t("emptyFiltered")}
           </p>
         ) : (
           <Table>

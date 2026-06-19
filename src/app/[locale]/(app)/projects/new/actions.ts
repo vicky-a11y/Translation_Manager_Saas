@@ -91,6 +91,8 @@ export async function createProjectAction(
     return {errorKey: "validation"};
   }
 
+  const notes = String(formData.get("notes") ?? "").trim().slice(0, 5000) || null;
+
   const {data: customer} = await supabase
     .from("customer_master")
     .select("id")
@@ -125,6 +127,7 @@ export async function createProjectAction(
       project_code: projectCode,
       title,
       delivery_deadline: deliveryDeadline,
+      notes,
       source_lang: "und",
       target_lang: "und",
       status: "draft",

@@ -14,6 +14,7 @@ import {cn} from "@/lib/utils";
 import {type AppLocale, defaultLocale, locales} from "@/i18n/routing";
 import {ProjectFinanceEditor} from "./project-finance-editor";
 import {ProjectAssignmentsEditor} from "./project-assignments-editor";
+import {ProjectDeleteButton, ProjectInfoEditor} from "./project-info-editor";
 
 function isLocale(value: string): value is AppLocale {
   return (locales as readonly string[]).includes(value);
@@ -76,7 +77,7 @@ export default async function ProjectDetailPage({
 
   const {data: project} = await supabase
     .from("projects")
-    .select("id, customer_id, project_code, title, created_at, delivery_deadline")
+    .select("id, customer_id, project_code, title, created_at, delivery_deadline, notes")
     .eq("tenant_id", tenantId)
     .eq("id", projectId)
     .maybeSingle();
@@ -154,6 +155,10 @@ export default async function ProjectDetailPage({
   const navT = await getTranslations({locale, namespace: "Navigation"});
   const t = await getTranslations({locale, namespace: "ProjectsDetail"});
 
+  const customerLabel = customer?.cid
+    ? `${customer.display_name ?? ""} (${customer.cid})`.trim()
+    : (customer?.display_name ?? "").trim() || "—";
+
   const assignments = (assignmentRows ?? []).map((raw) => {
     const row = raw as {
       id: string;
@@ -199,9 +204,23 @@ export default async function ProjectDetailPage({
             <p className="text-sm text-muted-foreground">{project.project_code}</p>
             <h1 className="mt-1 text-xl font-semibold tracking-tight">{project.title}</h1>
           </div>
-          <Link href={`/${locale}/projects`} className={cn(buttonVariants({variant: "outline"}), "shrink-0")}>
-            {t("backToList")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <ProjectDeleteButton
+              locale={locale}
+              projectId={projectId}
+              labels={{
+                delete: t("delete"),
+                deleteConfirmTitle: t("deleteConfirmTitle"),
+                deleteConfirmBody: t("deleteConfirmBody"),
+                no: t("no"),
+                yes: t("yes"),
+                deleting: t("deleting"),
+              }}
+            />
+            <Link href={`/${locale}/projects`} className={cn(buttonVariants({variant: "outline"}), "shrink-0")}>
+              {t("backToList")}
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -210,24 +229,39 @@ export default async function ProjectDetailPage({
               <CardTitle>{t("sectionProject")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="grid gap-3 text-sm">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("projectCode")}</dt>
-                  <dd className="font-medium">{project.project_code}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("projectTitle")}</dt>
-                  <dd className="font-medium">{project.title}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("createdAt")}</dt>
-                  <dd className="font-medium">{formatDateTime(project.created_at, locale)}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">{t("deliveryDeadline")}</dt>
-                  <dd className="font-medium">{formatDateTime(project.delivery_deadline, locale)}</dd>
-                </div>
-              </dl>
+              <ProjectInfoEditor
+                locale={locale}
+                projectId={projectId}
+                initial={{
+                  projectCode: project.project_code ?? "",
+                  title: project.title,
+                  createdAt: project.created_at,
+                  deliveryDeadline: project.delivery_deadline,
+                  notes: project.notes,
+                  customerId: project.customer_id,
+                  customerLabel,
+                }}
+                labels={{
+                  projectCode: t("projectCode"),
+                  projectTitle: t("projectTitle"),
+                  createdAt: t("createdAt"),
+                  deliveryDeadline: t("deliveryDeadline"),
+                  notes: t("notes"),
+                  notesPlaceholder: t("notesPlaceholder"),
+                  customer: t("customer"),
+                  customerSearchPlaceholder: t("customerSearchPlaceholder"),
+                  customerSearching: t("customerSearching"),
+                  customerNoMatches: t("customerNoMatches"),
+                  edit: t("edit"),
+                  save: t("save"),
+                  saving: t("saving"),
+                  cancel: t("cancel"),
+                  saved: t("saved"),
+                  errorValidation: t("errors.validation"),
+                  errorDuplicate: t("errors.duplicate"),
+                  errorGeneric: t("errors.database"),
+                }}
+              />
             </CardContent>
           </Card>
 

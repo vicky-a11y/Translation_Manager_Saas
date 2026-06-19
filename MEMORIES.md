@@ -46,3 +46,37 @@
 ## UI 最佳化
 
 - 案件識別在介面上以 **# 開頭的 8 碼案號** 呈現（由 UUID 簡化），提升可讀性。
+
+## 案件管理 (Projects)
+
+- **列表頁** `/{locale}/projects`：依年月篩選、顯示案件編號、名稱、交件時間、客戶、指派譯者；逾期交件以視覺標示。需 **`can_edit_projects`**（或 `super_admin`）方可進入。
+- **新增案件** `/{locale}/projects/new`（`createProjectAction`）：
+  - 客戶以名稱／編號**即時搜尋**選取（`searchActiveCustomersAction`）。
+  - 必填：案件編號（租戶內唯一）、名稱、交件時間、客戶、金額；可填規費、**案件備註**（`projects.notes`）。
+  - 寫入 `projects`（`status=draft`）後更新 `project_financials`；財務更新失敗會回滾刪除案件。
+  - 支援從客戶 Intake 轉正後**預填**客戶、金額與唯讀參考區塊（`?from_intake=`）。
+- **案件明細** `/{locale}/projects/[id]`：分區塊呈現並支援區域性編輯。
+  - **案件資訊**（`ProjectInfoEditor` + `updateProjectInfoAction`）：建立後可修改案件編號、名稱、交件時間、客戶（搜尋選取）、備註；建立時間唯讀。
+  - **金額資訊**（`ProjectFinanceEditor` + `updateProjectFinanceAction`）：可編輯已收款、支付方式、匯款欄位等；總額／規費等由 DB 計算欄位唯讀顯示。
+  - **客戶聯絡資訊**：唯讀顯示關聯 `customer_master`。
+  - **指派譯者**（`ProjectAssignmentsEditor`）：新增／修改／刪除 `project_translator_assignments`（稿費、回稿期限、譯者搜尋）。
+  - **刪除案件**（`ProjectDeleteButton` + `deleteProjectAction`）：頁首紅色刪除鈕 → **確認對話框**（標題「確認刪除此筆案件？」、**是／否**）→ 確認後刪除 `projects`（`ON DELETE CASCADE` 連動財務、指派等）並導回列表。
+- **Server actions 邊界**：`src/app/[locale]/(app)/projects/[id]/actions.ts`；權限與租戶範圍與列表／新增相同（`requireProjectEditContext`）。
+- **i18n**：`ProjectsPage`、`ProjectsNew`、`ProjectsDetail` 四語系已對齊。
+- **流程圖與操作說明**：見 `docs/PROJECT_CUSTOMER_FLOW.md`。
+
+## 譯者管理 (Translators)
+
+- **列表頁** `/{locale}/translators`：譯者編號、姓名、Email、**服務標籤**；需 **`can_manage_vendors`**（或 `super_admin`）。
+- **新增／編輯** `/{locale}/translators/new`、`/{locale}/translators/[id]`（`TranslatorEditor` + server actions）：
+  - 可填個人資料、服務標籤、銀行帳戶等。
+  - **`native_lang`（母語）與 `language_skills`（語言能力）UI 已移除**；DB 欄位保留。新增時 `native_lang` 寫入佔位值 `und`、`language_skills` 為 `[]`；編輯時不覆寫這兩欄。
+  - 待建置項目見 `docs/TRANSLATOR_MANAGEMENT_V1_STATUS.md` §3.4、`ROADMAP.md`。
+- **i18n**：`TranslatorsPage`、`TranslatorsEditor` 四語系已對齊。
+
+## 客戶自助建檔 (Intake) — V1 已落地
+
+- **Migration `048_customer_intake_flow.sql`**：`customer_intake_links`、`customer_intake_submissions`、`projects.notes`、公開 RPC 與 RLS。
+- **公開頁** `/[locale]/intake/[token]`：客戶填表、兩階段預覽、送出暫存。
+- **後台收件匣** `/[locale]/(app)/customers/intake`：連結管理、pending 列表、核准轉正客戶、刪除暫存、預填跳轉建案。
+- **設計手冊**（含待實作項目）：`docs/CUSTOMER_INTAKE_DESIGN.md`。
